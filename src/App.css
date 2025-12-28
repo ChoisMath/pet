@@ -80,8 +80,8 @@
 .control-area {
   flex-shrink: 0;
   height: auto;
-  max-height: 45%;
-  min-height: 180px;
+  max-height: 55%;
+  min-height: 200px;
 }
 
 /* 로딩 화면 */
