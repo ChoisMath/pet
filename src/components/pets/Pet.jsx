@@ -128,25 +128,7 @@ const Pet = ({
     }, 1000);
   };
 
-  const renderPetSvg = () => {
-    const props = {
-      state: pet.state,
-      mood: pet.mood,
-      size: size,
-      colorId: pet.colorId
-    };
 
-    switch (pet.type) {
-      case 'dog':
-        return <DogSvg {...props} />;
-      case 'cat':
-        return <CatSvg {...props} />;
-      case 'hamster':
-        return <HamsterSvg {...props} />;
-      default:
-        return <DogSvg {...props} />;
-    }
-  };
 
   // 특수 활동 오버레이 렌더링
   const renderActivityOverlay = () => {
@@ -240,32 +222,92 @@ const Pet = ({
           </div>
         )}
 
-        {/* 말풍선 (상태에 따라) */}
-        {pet.mood !== 'happy' && pet.state !== 'sleep' && (
-          <div className="speech-bubble">
-            {pet.mood === 'sad' && '😢'}
-            {pet.mood === 'sick' && '🤒'}
-            {pet.mood === 'tired' && '😴'}
-            {pet.stats?.hunger < 30 && '🍖?'}
-          </div>
-        )}
+        {/* 말풍선 & 시각적 상태 결정 */}
+        {(() => {
+          // 상태 우선순위 결정 함수
+          const getStatus = () => {
+            if (pet.state === 'sleep') return { mode: 'sleep', bubble: null };
+            
+            const s = pet.stats;
+            if (!s) return { mode: 'normal', bubble: null };
 
-        {/* 펫 SVG */}
-        <div className={`pet-sprite ${pet.state === 'sleep' ? 'sleeping-sprite' : ''}`}>
-          {renderPetSvg()}
-          
-          {/* 잠자는 효과 */}
-          {pet.state === 'sleep' && (
-            <div className="sleep-overlay">
-              <div className="zzz-container">
-                <span className="zzz z1">Z</span>
-                <span className="zzz z2">z</span>
-                <span className="zzz z3">z</span>
+            // 1. Critical (<= 20)
+            if (s.health <= 20) return { mode: 'critical', bubble: { emoji: '🏥', text: '...' }, style: { transform: 'rotate(90deg) translateY(20px)' } };
+            if (s.hunger <= 20) return { mode: 'starving', bubble: { emoji: '🍗🍷', text: '배.. 고.. 파' }, style: { transform: 'rotate(90deg) translateY(20px)' } };
+            if (s.energy <= 20) return { mode: 'collapsed', bubble: { emoji: '💫', text: '힘들어...' }, style: { transform: 'translateY(10px)' } }; // 주저앉음
+            if (s.happiness <= 20) return { mode: 'rebellious', bubble: { emoji: '😡', text: '집 나갈거야' } };
+
+            // 2. Warning (<= 40/60)
+            if (s.health <= 60) return { mode: 'fever', bubble: { emoji: '🥵', text: '아파요...' } };
+            if (s.hunger <= 40) return { mode: 'hungry_severe', bubble: { emoji: '🍖', text: '배고파서 힘들어요' } };
+            if (s.energy <= 60) return { mode: 'tired', bubble: { emoji: '😫', text: '지쳤어요' } };
+            if (s.happiness <= 60) return { mode: 'sulky', bubble: { emoji: '😒', text: '심심해' } };
+            if (s.hunger <= 60) return { mode: 'hungry_mid', bubble: { emoji: '🍎', text: '꼬르륵, 배고파요' } };
+
+            // 3. Light (<= 80)
+            if (s.hunger <= 80) return { mode: 'hungry_light', bubble: { emoji: '🍪', text: '간식주세요' } };
+
+            // 4. Default Moods
+            if (pet.mood === 'sad') return { mode: 'sad', bubble: { emoji: '😢' } };
+            if (pet.mood === 'sick') return { mode: 'sick', bubble: { emoji: '🤒' } };
+            if (pet.mood === 'tired') return { mode: 'tired', bubble: { emoji: '😴' } };
+            
+            return { mode: 'normal', bubble: null };
+          };
+
+          const status = getStatus();
+
+          return (
+            <>
+              {/* 말풍선 */}
+              {status.bubble && (
+                <div className="speech-bubble" style={{ width: status.bubble.text ? 'auto' : '40px', padding: status.bubble.text ? '5px 10px' : '5px' }}>
+                  <span className="bubble-emoji">{status.bubble.emoji}</span>
+                  {status.bubble.text && <span className="bubble-text" style={{ fontSize: '10px', marginLeft: '4px', whiteSpace: 'nowrap' }}>{status.bubble.text}</span>}
+                </div>
+              )}
+
+              {/* 펫 SVG 컨테이너 */}
+              <div 
+                className={`pet-sprite ${pet.state === 'sleep' ? 'sleeping-sprite' : ''}`}
+                style={{ 
+                  transition: 'transform 0.5s ease',
+                  ...(status.style || {})
+                }}
+              >
+                {/* SVG 렌더링 - visualMode 전달 */}
+                {(() => {
+                  const props = {
+                    state: pet.state,
+                    mood: pet.mood, // 기본 무드 유지하되, visualMode가 덮어씌움
+                    visualMode: status.mode, // 새로운 시각 모드 prop
+                    size: size,
+                    colorId: pet.colorId
+                  };
+
+                  switch (pet.type) {
+                    case 'dog': return <DogSvg {...props} />;
+                    case 'cat': return <CatSvg {...props} />;
+                    case 'hamster': return <HamsterSvg {...props} />;
+                    default: return <DogSvg {...props} />;
+                  }
+                })()}
+
+                {/* 잠자는 효과 */}
+                {pet.state === 'sleep' && (
+                  <div className="sleep-overlay">
+                    <div className="zzz-container">
+                      <span className="zzz z1">Z</span>
+                      <span className="zzz z2">z</span>
+                      <span className="zzz z3">z</span>
+                    </div>
+                    <div className="sleep-cap">😴</div>
+                  </div>
+                )}
               </div>
-              <div className="sleep-cap">😴</div>
-            </div>
-          )}
-        </div>
+            </>
+          );
+        })()}
 
         {/* 이름 태그 */}
         <div className="name-tag">

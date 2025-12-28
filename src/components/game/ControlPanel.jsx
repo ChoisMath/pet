@@ -97,8 +97,8 @@ const ControlPanel = () => {
 
   const handleHeal = () => {
     if (!selectedPet) return;
-    if (!selectedPet.isSick) {
-      actions.notify('펫이 아프지 않아요! 😊', 'info');
+    if (selectedPet.stats.health >= 100) {
+      actions.notify('펫이 이미 건강해요! 😊', 'info');
       return;
     }
     const pillItem = state.inventory.medicine.pill;
@@ -299,7 +299,7 @@ const ControlPanel = () => {
                     onClick={handleHeal}
                     variant="danger"
                     size="medium"
-                    disabled={!selectedPet.isSick}
+                    disabled={selectedPet.stats.health >= 100}
                   />
                   <ActionButton 
                     icon={selectedPet.state === 'sleep' ? '☀️' : '💤'} 

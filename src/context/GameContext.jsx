@@ -1433,9 +1433,8 @@ export const GameProvider = ({ children }) => {
     const pet = state.pets.find(p => p.id === petId);
     if (!pet) return 0;
     const level = pet.jobs[jobType]?.level || 0;
-    const baseEarn = calculateJobEarnPerSecond(jobType, level);
-    const multiplier = calculateTotalAssetMultiplier(state.assets);
-    return Math.floor(baseEarn * multiplier);
+    // 자산 배율 적용하지 않음 (기본 수입만 반환)
+    return calculateJobEarnPerSecond(jobType, level);
   };
 
   const getAssetCost = (assetType) => {
