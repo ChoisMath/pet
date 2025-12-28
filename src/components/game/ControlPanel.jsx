@@ -9,7 +9,8 @@ const ControlPanel = () => {
   const { 
     state, actions, getSelectedPet, getClickCoins, 
     getUpgradeCost, getFoodPrice, getFoodUpgradeCost,
-    getJobCost, getJobEarnPerMinute, JOB_TYPES 
+    getJobCost, getJobEarnPerSecond, getAssetCost, getTotalAssetMultiplier,
+    JOB_TYPES, ASSET_TYPES 
   } = useGame();
   const [activeTab, setActiveTab] = useState('actions');
   const [showAddPetModal, setShowAddPetModal] = useState(false);
@@ -514,6 +515,37 @@ const ControlPanel = () => {
                 })()}
               </div>
             </div>
+
+            {/* 자산 섹션 */}
+            <div className="shop-section">
+              <h4>🏠 자산 (알바 수익 x{getTotalAssetMultiplier().toFixed(2)})</h4>
+              <div className="shop-items">
+                {Object.entries(ASSET_TYPES).map(([assetType, assetInfo]) => {
+                  const currentAsset = state.assets[assetType];
+                  const level = currentAsset?.level || 0;
+                  const cost = getAssetCost(assetType);
+                  const isMaxLevel = level >= assetInfo.maxLevel;
+                  
+                  return (
+                    <div key={assetType} className="shop-item-row">
+                      <div 
+                        className="shop-item" 
+                        onClick={() => !isMaxLevel && actions.upgradeAsset(assetType)}
+                        style={{ cursor: isMaxLevel ? 'default' : 'pointer' }}
+                      >
+                        <span className="item-icon">{assetInfo.icon}</span>
+                        <span className="item-name">{assetInfo.name}</span>
+                        <span className="item-level">Lv.{level}</span>
+                        <span className="item-price">
+                          {isMaxLevel ? 'MAX' : `🪙 ${cost.toLocaleString()}`}
+                        </span>
+                        <span className="item-owned">x{assetInfo.multiplier}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         )}
 
@@ -544,7 +576,7 @@ const ControlPanel = () => {
                       <span className="job-emoji">{JOB_TYPES[selectedPet.currentJob]?.icon}</span>
                       <div className="job-info">
                         <h4>{JOB_TYPES[selectedPet.currentJob]?.name} 진행 중...</h4>
-                        <p>수입: {getJobEarnPerMinute(selectedPet.currentJob, selectedPet.id)} 코인/분</p>
+                        <p>수입: {getJobEarnPerSecond(selectedPet.currentJob, selectedPet.id)} 코인/초</p>
                         <p className="total-earned">
                           이번 알바 수입: 🪙 {(selectedPet.jobEarned || 0).toLocaleString()}
                         </p>
@@ -561,7 +593,7 @@ const ControlPanel = () => {
                       const isUnlocked = petJob?.unlocked;
                       const level = petJob?.level || 0;
                       const cost = getJobCost(jobType, selectedPet.id);
-                      const earnPerMin = getJobEarnPerMinute(jobType, selectedPet.id);
+                      const earnPerSec = getJobEarnPerSecond(jobType, selectedPet.id);
                       
                       return (
                         <div key={jobType} className="job-item-new">
@@ -570,7 +602,7 @@ const ControlPanel = () => {
                             <div className="job-details">
                               <h4>{jobInfo.name}</h4>
                               {isUnlocked ? (
-                                <p>Lv.{level} • {earnPerMin} 코인/분</p>
+                                <p>Lv.{level} • {earnPerSec} 코인/초</p>
                               ) : (
                                 <p className="locked">🔒 잠금됨</p>
                               )}

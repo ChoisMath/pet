@@ -2,11 +2,20 @@ import React, { createContext, useContext, useReducer, useEffect, useRef, useCal
 import { getDefaultColor } from '../utils/petColors';
 import * as api from '../services/api';
 
-// 알바 정보 - 펫별로 관리, 레벨당 분당 획득 (등차수열)
+// 알바 정보 - 펫별로 관리, 초당 코인 획득
 const JOB_TYPES = {
-  delivery: { name: '배달', icon: '🚴', baseCost: 50, baseEarn: 5, earnIncrement: 3 },
-  cleaning: { name: '청소', icon: '🧹', baseCost: 100, baseEarn: 8, earnIncrement: 5 },
-  tutoring: { name: '과외', icon: '📚', baseCost: 200, baseEarn: 12, earnIncrement: 8 }
+  delivery: { name: '배달', icon: '🚴', baseCost: 200, costIncrement: 100, baseEarn: 1, earnIncrement: 1 },
+  cleaning: { name: '청소', icon: '🧹', baseCost: 500, costIncrement: 300, baseEarn: 3, earnIncrement: 3 },
+  tutoring: { name: '과외', icon: '📚', baseCost: 1000, costIncrement: 500, baseEarn: 5, earnIncrement: 5 }
+};
+
+// 자산 정보 - 알바 수익 배율 증가
+const ASSET_TYPES = {
+  paperBox: { name: '종이박스', icon: '📦', baseCost: 1000, multiplier: 1.1, maxLevel: 20 },
+  woodBox: { name: '나무박스', icon: '🪵', baseCost: 3000, multiplier: 1.3, maxLevel: 20 },
+  woodHouse: { name: '나무집', icon: '🏠', baseCost: 5000, multiplier: 1.5, maxLevel: 20 },
+  plasticHouse: { name: '플라스틱집', icon: '🏡', baseCost: 10000, multiplier: 2.0, maxLevel: 20 },
+  concreteHouse: { name: '콘크리트집', icon: '🏢', baseCost: 20000, multiplier: 3.0, maxLevel: 20 }
 };
 
 // 초기 상태
@@ -35,6 +44,15 @@ const initialState = {
     toys: { ball: 1, yarn: 1 }
   },
   
+  // 자산 시스템 (알바 수익 배율)
+  assets: {
+    paperBox: { level: 0 },
+    woodBox: { level: 0 },
+    woodHouse: { level: 0 },
+    plasticHouse: { level: 0 },
+    concreteHouse: { level: 0 }
+  },
+  
   gameTime: {
     day: 1,
     hour: 12,
@@ -42,7 +60,7 @@ const initialState = {
   },
   notifications: [],
   lastSaveTime: Date.now(),
-  lastJobTick: Date.now(), // 분당 코인을 위한 마지막 틱 시간
+  lastJobTick: Date.now(), // 초당 코인을 위한 마지막 틱 시간
   settings: {
     soundEnabled: true,
     vibrationEnabled: true
@@ -135,19 +153,41 @@ const calculateFoodUpgradeCost = (basePrice, level) => {
   return calculateFoodPrice(basePrice, level) * 10;
 };
 
-// 알바 잠금해제/업그레이드 비용 (2배씩 증가)
+// 알바 잠금해제/업그레이드 비용 (등차수열: baseCost + level * costIncrement)
 const calculateJobCost = (jobType, currentLevel) => {
   const job = JOB_TYPES[jobType];
   if (!job) return 0;
-  return job.baseCost * Math.pow(2, currentLevel);
+  // 레벨 0(해금): baseCost, 레벨 1 업그레이드: baseCost + costIncrement, ...
+  return job.baseCost + currentLevel * job.costIncrement;
 };
 
-// 알바 분당 수입 계산 (등차수열)
-const calculateJobEarnPerMinute = (jobType, level) => {
+// 알바 초당 수입 계산 (등차수열)
+const calculateJobEarnPerSecond = (jobType, level) => {
   const job = JOB_TYPES[jobType];
   if (!job || level <= 0) return 0;
   // 레벨 1: baseEarn, 레벨 2: baseEarn + earnIncrement, ...
   return job.baseEarn + (level - 1) * job.earnIncrement;
+};
+
+// 자산 총 배율 계산
+const calculateTotalAssetMultiplier = (assets) => {
+  let multiplier = 1;
+  for (const [assetType, assetData] of Object.entries(assets)) {
+    const assetInfo = ASSET_TYPES[assetType];
+    if (assetInfo && assetData.level > 0) {
+      // 각 자산의 레벨만큼 배율 적용 (레벨 1: 배율^1, 레벨 2: 배율^2, ...)
+      multiplier *= Math.pow(assetInfo.multiplier, assetData.level);
+    }
+  }
+  return multiplier;
+};
+
+// 자산 업그레이드 비용 계산
+const calculateAssetCost = (assetType, currentLevel) => {
+  const asset = ASSET_TYPES[assetType];
+  if (!asset) return 0;
+  // 비용 = baseCost * (multiplier ^ currentLevel)
+  return Math.floor(asset.baseCost * Math.pow(asset.multiplier, currentLevel));
 };
 
 // 도망간 펫 소환 비용 (레벨 * 100)
@@ -181,7 +221,8 @@ const ActionTypes = {
   UPGRADE_JOB: 'UPGRADE_JOB',
   START_JOB: 'START_JOB',
   END_JOB: 'END_JOB',
-  JOB_MINUTE_TICK: 'JOB_MINUTE_TICK',
+  JOB_SECOND_TICK: 'JOB_SECOND_TICK',
+  UPGRADE_ASSET: 'UPGRADE_ASSET',
   ADD_COINS: 'ADD_COINS',
   SPEND_COINS: 'SPEND_COINS',
   UPDATE_GAME_TIME: 'UPDATE_GAME_TIME',
@@ -664,15 +705,18 @@ const gameReducer = (state, action) => {
       };
     }
 
-    // 알바 분당 틱 (1분마다 호출)
-    case ActionTypes.JOB_MINUTE_TICK: {
+    // 알바 초당 틱 (1초마다 호출)
+    case ActionTypes.JOB_SECOND_TICK: {
       let totalEarned = 0;
+      const assetMultiplier = calculateTotalAssetMultiplier(state.assets);
+      
       const updatedPets = state.pets.map(pet => {
         // 수면 중이거나 알바 중이 아니면 스킵
         if (pet.state === 'sleep' || !pet.currentJob) return pet;
         
         const jobLevel = pet.jobs[pet.currentJob]?.level || 0;
-        const earned = calculateJobEarnPerMinute(pet.currentJob, jobLevel);
+        const baseEarned = calculateJobEarnPerSecond(pet.currentJob, jobLevel);
+        const earned = Math.floor(baseEarned * assetMultiplier);
         totalEarned += earned;
         
         return {
@@ -686,6 +730,31 @@ const gameReducer = (state, action) => {
         coins: state.coins + totalEarned,
         pets: updatedPets,
         lastJobTick: Date.now()
+      };
+    }
+
+    // 자산 구매/업그레이드
+    case ActionTypes.UPGRADE_ASSET: {
+      const { assetType } = action.payload;
+      const asset = ASSET_TYPES[assetType];
+      const currentAsset = state.assets[assetType];
+      
+      if (!asset || !currentAsset) return state;
+      if (currentAsset.level >= asset.maxLevel) return state;
+      
+      const cost = calculateAssetCost(assetType, currentAsset.level);
+      if (state.coins < cost) return state;
+      
+      return {
+        ...state,
+        coins: state.coins - cost,
+        assets: {
+          ...state.assets,
+          [assetType]: {
+            ...currentAsset,
+            level: currentAsset.level + 1
+          }
+        }
       };
     }
 
@@ -781,6 +850,7 @@ const gameReducer = (state, action) => {
           },
           toys: action.payload.inventory?.toys || { ball: 1, yarn: 1 }
         },
+        assets: action.payload.assets || initialState.assets,
         upgrades: action.payload.upgrades || initialState.upgrades,
         lastJobTick: action.payload.lastJobTick || Date.now()
       };
@@ -1048,11 +1118,11 @@ export const GameProvider = ({ children }) => {
     return () => clearInterval(tickInterval);
   }, []);
 
-  // 알바 분당 틱 (60초마다)
+  // 알바 초당 틱 (1초마다)
   useEffect(() => {
     const jobInterval = setInterval(() => {
-      dispatch({ type: ActionTypes.JOB_MINUTE_TICK });
-    }, 60000);
+      dispatch({ type: ActionTypes.JOB_SECOND_TICK });
+    }, 1000);
     
     return () => clearInterval(jobInterval);
   }, []);
@@ -1103,11 +1173,23 @@ export const GameProvider = ({ children }) => {
     return calculateJobCost(jobType, currentLevel);
   };
 
-  const getJobEarnPerMinute = (jobType, petId) => {
+  const getJobEarnPerSecond = (jobType, petId) => {
     const pet = state.pets.find(p => p.id === petId);
     if (!pet) return 0;
     const level = pet.jobs[jobType]?.level || 0;
-    return calculateJobEarnPerMinute(jobType, level);
+    const baseEarn = calculateJobEarnPerSecond(jobType, level);
+    const multiplier = calculateTotalAssetMultiplier(state.assets);
+    return Math.floor(baseEarn * multiplier);
+  };
+
+  const getAssetCost = (assetType) => {
+    const currentAsset = state.assets[assetType];
+    if (!currentAsset) return 0;
+    return calculateAssetCost(assetType, currentAsset.level);
+  };
+
+  const getTotalAssetMultiplier = () => {
+    return calculateTotalAssetMultiplier(state.assets);
   };
 
   // 특수 활동 시작
@@ -1245,6 +1327,44 @@ export const GameProvider = ({ children }) => {
       payload: { petId } 
     }),
     
+    upgradeAsset: (assetType) => {
+      const currentAsset = state.assets[assetType];
+      const assetInfo = ASSET_TYPES[assetType];
+      
+      if (!currentAsset || !assetInfo) return;
+      if (currentAsset.level >= assetInfo.maxLevel) {
+        dispatch({
+          type: ActionTypes.ADD_NOTIFICATION,
+          payload: {
+            message: `⚠️ ${assetInfo.name}은(는) 이미 최대 레벨입니다!`,
+            type: 'warning'
+          }
+        });
+        return;
+      }
+      
+      const cost = calculateAssetCost(assetType, currentAsset.level);
+      if (state.coins < cost) {
+        dispatch({
+          type: ActionTypes.ADD_NOTIFICATION,
+          payload: {
+            message: `⚠️ 코인이 부족해요! (필요: ${cost}🪙)`,
+            type: 'warning'
+          }
+        });
+        return;
+      }
+      
+      dispatch({ type: ActionTypes.UPGRADE_ASSET, payload: { assetType } });
+      dispatch({
+        type: ActionTypes.ADD_NOTIFICATION,
+        payload: {
+          message: `🎉 ${assetInfo.name} Lv.${currentAsset.level + 1} 업그레이드 완료!`,
+          type: 'success'
+        }
+      });
+    },
+    
     addCoins: (amount) => dispatch({ 
       type: ActionTypes.ADD_COINS, 
       payload: { amount } 
@@ -1316,9 +1436,12 @@ export const GameProvider = ({ children }) => {
       getFoodPrice,
       getFoodUpgradeCost,
       getJobCost,
-      getJobEarnPerMinute,
+      getJobEarnPerSecond,
+      getAssetCost,
+      getTotalAssetMultiplier,
       getRecallCost,
-      JOB_TYPES
+      JOB_TYPES,
+      ASSET_TYPES
     }}>
       {children}
     </GameContext.Provider>
