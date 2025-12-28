@@ -712,25 +712,42 @@ const gameReducer = (state, action) => {
       };
     }
 
-    // 알바 초당 틱 (1초마다 호출)
+    // 알바 초당 틱 (1초마다 호출) - 자동 누적 시스템으로 변경
     case ActionTypes.JOB_SECOND_TICK: {
       let totalEarned = 0;
       const assetMultiplier = calculateTotalAssetMultiplier(state.assets);
       
       const updatedPets = state.pets.map(pet => {
-        // 수면 중이거나 알바 중이 아니면 스킵
-        if (pet.state === 'sleep' || !pet.currentJob) return pet;
+        // 수면 중이면 알바 수익 없음
+        if (pet.state === 'sleep') return pet;
         
-        const jobLevel = pet.jobs[pet.currentJob]?.level || 0;
-        const baseEarned = calculateJobEarnPerSecond(pet.currentJob, jobLevel);
-        const earned = Math.floor(baseEarned * assetMultiplier);
-        totalEarned += earned;
+        let petEarned = 0;
+        
+        // 모든 해금된 알바에서 수익 발생 (누적)
+        Object.entries(pet.jobs).forEach(([jobType, jobData]) => {
+          if (jobData.unlocked && jobData.level > 0) {
+            const baseEarned = calculateJobEarnPerSecond(jobType, jobData.level);
+            petEarned += baseEarned;
+          }
+        });
+
+        // 자산 배율 적용 (전체 합산 후 배율 적용)
+        const finalEarned = Math.floor(petEarned * assetMultiplier);
+        totalEarned += finalEarned;
         
         return {
           ...pet,
-          jobEarned: (pet.jobEarned || 0) + earned
+          jobEarned: (pet.jobEarned || 0) + finalEarned
         };
       });
+      
+      // 수익이 0이면 상태 변경 없음 (불필요한 리렌더링 방지)
+      if (totalEarned === 0) {
+        return {
+          ...state,
+          lastJobTick: Date.now()
+        };
+      }
       
       return {
         ...state,
@@ -898,8 +915,6 @@ const gameReducer = (state, action) => {
           },
           toys: action.payload.inventory?.toys || { ball: 1, yarn: 1 }
         },
-        assets: action.payload.assets || initialState.assets,
-        upgrades: action.payload.upgrades || initialState.upgrades,
         lastJobTick: action.payload.lastJobTick || Date.now()
       };
     }

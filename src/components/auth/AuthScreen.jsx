@@ -7,7 +7,6 @@ const AuthScreen = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
     username: '',
-    email: '',
     password: '',
     confirmPassword: ''
   });
@@ -40,7 +39,7 @@ const AuthScreen = () => {
         }
       } else {
         // 회원가입
-        if (!formData.username || !formData.email || !formData.password) {
+        if (!formData.username || !formData.password) {
           setFormError('모든 필드를 입력해주세요.');
           return;
         }
@@ -48,11 +47,11 @@ const AuthScreen = () => {
           setFormError('비밀번호가 일치하지 않습니다.');
           return;
         }
-        if (formData.password.length < 6) {
-          setFormError('비밀번호는 6자 이상이어야 합니다.');
+        if (formData.password.length < 1) {
+          setFormError('비밀번호는 1자 이상이어야 합니다.');
           return;
         }
-        const result = await register(formData.username, formData.email, formData.password);
+        const result = await register(formData.username, formData.password);
         if (!result.success) {
           setFormError(result.error);
         }
@@ -67,7 +66,6 @@ const AuthScreen = () => {
     setFormError('');
     setFormData({
       username: '',
-      email: '',
       password: '',
       confirmPassword: ''
     });
@@ -105,21 +103,6 @@ const AuthScreen = () => {
               autoComplete="username"
             />
           </div>
-
-          {!isLogin && (
-            <div className="form-group">
-              <label htmlFor="email">이메일</label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="이메일 입력"
-                autoComplete="email"
-              />
-            </div>
-          )}
 
           <div className="form-group">
             <label htmlFor="password">비밀번호</label>

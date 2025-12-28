@@ -32,10 +32,10 @@ const apiRequest = async (endpoint, options = {}) => {
 
 // ===== 인증 API =====
 
-export const register = async (username, email, password) => {
+export const register = async (username, password) => {
   const data = await apiRequest('/auth/register', {
     method: 'POST',
-    body: JSON.stringify({ username, email, password })
+    body: JSON.stringify({ username, password })
   });
   
   if (data.token) {

@@ -26,10 +26,10 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
 
-  const register = async (username, email, password) => {
+  const register = async (username, password) => {
     setError(null);
     try {
-      const data = await api.register(username, email, password);
+      const data = await api.register(username, password);
       setUser(data.user);
       return { success: true };
     } catch (err) {

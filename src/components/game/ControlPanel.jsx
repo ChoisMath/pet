@@ -180,31 +180,7 @@ const ControlPanel = () => {
     actions.notify(`${JOB_TYPES[jobType].name} 레벨업! 📈`, 'success');
   };
 
-  // 알바 시작
-  const handleStartJob = (jobType) => {
-    if (!selectedPet) return;
-    if (selectedPet.state === 'sleep') {
-      actions.notify('⚠️ 펫이 깨어있을 때만 알바를 할 수 있어요!', 'warning');
-      return;
-    }
-    if (!selectedPet.jobs[jobType]?.unlocked) {
-      actions.notify('⚠️ 먼저 알바를 해금하세요!', 'warning');
-      return;
-    }
-    if (selectedPet.currentJob) {
-      actions.notify('⚠️ 이미 알바 중이에요!', 'warning');
-      return;
-    }
-    actions.startJob(selectedPet.id, jobType);
-    actions.notify(`${JOB_TYPES[jobType].name} 알바 시작! 💼`, 'success');
-  };
 
-  // 알바 종료
-  const handleEndJob = () => {
-    if (!selectedPet) return;
-    actions.endJob(selectedPet.id);
-    actions.notify('알바 종료! 💰', 'success');
-  };
 
   const tabs = [
     { id: 'actions', label: '행동', icon: '🎮' },
@@ -564,95 +540,95 @@ const ControlPanel = () => {
           </div>
         )}
 
-        {/* 알바 탭 - 새로운 펫별 알바 시스템 */}
+        {/* 알바 탭 - 패시브 수입 시스템 */}
         {activeTab === 'job' && (
           <div className="job-tab">
-            <h3>💼 알바</h3>
+            <h3>💼 알바 (자동 수입)</h3>
             
             {!selectedPet ? (
               <p className="job-notice">⚠️ 펫을 먼저 선택해주세요!</p>
             ) : selectedPet.state === 'sleep' ? (
-              <p className="job-notice">😴 펫이 자고 있어요. 깨어있을 때만 알바할 수 있어요!</p>
+              <div className="job-notice warning">
+                <p>😴 펫이 자고 있어요!</p>
+                <p className="sub-notice">자고 는 동안엔 알바 수입이 들어오지 않아요.</p>
+              </div>
             ) : (
               <>
                 <div className="job-pet-info">
                   <span className="pet-emoji">
                     {selectedPet.type === 'dog' ? '🐶' : selectedPet.type === 'cat' ? '🐱' : '🐹'}
                   </span>
-                  <span>{selectedPet.name}의 알바</span>
-                  {selectedPet.currentJob && (
-                    <span className="working-badge">💼 알바 중</span>
-                  )}
+                  <span>{selectedPet.name}의 알바 현황</span>
                 </div>
 
-                {selectedPet.currentJob ? (
-                  <div className="job-active">
-                    <div className="job-status">
-                      <span className="job-emoji">{JOB_TYPES[selectedPet.currentJob]?.icon}</span>
-                      <div className="job-info">
-                        <h4>{JOB_TYPES[selectedPet.currentJob]?.name} 진행 중...</h4>
-                        <p>수입: {getJobEarnPerSecond(selectedPet.currentJob, selectedPet.id)} 코인/초</p>
-                        <p className="total-earned">
-                          이번 알바 수입: 🪙 {(selectedPet.jobEarned || 0).toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                    <button className="end-job-btn" onClick={handleEndJob}>
-                      알바 종료
-                    </button>
+                {/* 총 수입 요약 */}
+                <div className="income-summary">
+                  <div className="income-row">
+                    <span>기본 수입 합계</span>
+                    <span>
+                      {Object.entries(JOB_TYPES).reduce((acc, [type]) => {
+                        return acc + getJobEarnPerSecond(type, selectedPet.id);
+                      }, 0)} 코인/초
+                    </span>
                   </div>
-                ) : (
-                  <div className="job-list">
-                    {Object.entries(JOB_TYPES).map(([jobType, jobInfo]) => {
-                      const petJob = selectedPet.jobs[jobType];
-                      const isUnlocked = petJob?.unlocked;
-                      const level = petJob?.level || 0;
-                      const cost = getJobCost(jobType, selectedPet.id);
-                      const earnPerSec = getJobEarnPerSecond(jobType, selectedPet.id);
-                      
-                      return (
-                        <div key={jobType} className="job-item-new">
-                          <div className="job-header">
-                            <span className="job-emoji">{jobInfo.icon}</span>
-                            <div className="job-details">
-                              <h4>{jobInfo.name}</h4>
-                              {isUnlocked ? (
-                                <p>Lv.{level} • {earnPerSec} 코인/초</p>
-                              ) : (
-                                <p className="locked">🔒 잠금됨</p>
-                              )}
-                            </div>
-                          </div>
-                          <div className="job-actions">
-                            {!isUnlocked ? (
-                              <button 
-                                className="unlock-btn"
-                                onClick={() => handleUnlockJob(jobType)}
-                              >
-                                🔓 해금 (🪙{jobInfo.baseCost})
-                              </button>
+                  <div className="income-row multiplier">
+                    <span>자산 배율 효과</span>
+                    <span>x{getTotalAssetMultiplier().toFixed(2)}</span>
+                  </div>
+                  <div className="income-total">
+                    <span>최종 시간당 수입</span>
+                    <span className="highlight">
+                      +{(Object.entries(JOB_TYPES).reduce((acc, [type]) => {
+                        return acc + getJobEarnPerSecond(type, selectedPet.id);
+                      }, 0) * getTotalAssetMultiplier()).toFixed(0)} 코인/초
+                    </span>
+                  </div>
+
+                  </div>
+
+
+                <div className="job-list">
+                  {Object.entries(JOB_TYPES).map(([jobType, jobInfo]) => {
+                    const petJob = selectedPet.jobs[jobType];
+                    const isUnlocked = petJob?.unlocked;
+                    const level = petJob?.level || 0;
+                    const cost = getJobCost(jobType, selectedPet.id);
+                    const earnPerSec = getJobEarnPerSecond(jobType, selectedPet.id);
+                    
+                    return (
+                      <div key={jobType} className="job-item-new">
+                        <div className="job-header">
+                          <span className="job-emoji">{jobInfo.icon}</span>
+                          <div className="job-details">
+                            <h4>{jobInfo.name}</h4>
+                            {isUnlocked ? (
+                              <p className="income-text">Lv.{level} • +{earnPerSec} 코인/초 (기본)</p>
                             ) : (
-                              <>
-                                <button 
-                                  className="start-btn"
-                                  onClick={() => handleStartJob(jobType)}
-                                >
-                                  시작
-                                </button>
-                                <button 
-                                  className="upgrade-job-btn"
-                                  onClick={() => handleUpgradeJob(jobType)}
-                                >
-                                  📈 {cost.toLocaleString()}
-                                </button>
-                              </>
+                              <p className="locked">🔒 잠금됨</p>
                             )}
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
+                        <div className="job-actions">
+                          {!isUnlocked ? (
+                            <button 
+                              className="unlock-btn"
+                              onClick={() => handleUnlockJob(jobType)}
+                            >
+                              🔓 해금 (🪙{jobInfo.baseCost})
+                            </button>
+                          ) : (
+                            <button 
+                              className="upgrade-job-btn"
+                              onClick={() => handleUpgradeJob(jobType)}
+                            >
+                              📈 레벨업 (🪙{cost.toLocaleString()})
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </>
             )}
           </div>

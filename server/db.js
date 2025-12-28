@@ -10,7 +10,9 @@ const connectionString = process.env.DATABASE_URL;
 
 const pool = new Pool({
   connectionString,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  ssl: (process.env.NODE_ENV === 'production' || connectionString?.includes('rlwy.net')) 
+    ? { rejectUnauthorized: false } 
+    : false
 });
 
 // 데이터베이스 연결 테스트
@@ -30,13 +32,25 @@ export const initializeDatabase = async () => {
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         username VARCHAR(50) UNIQUE NOT NULL,
-        email VARCHAR(100) UNIQUE NOT NULL,
+        email VARCHAR(100),
         password_hash VARCHAR(255) NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         last_login TIMESTAMP,
         coins INTEGER DEFAULT 100,
         upgrades JSONB DEFAULT '{"fingernail":{"level":0},"toenail":{"level":0},"fullbody":{"level":0}}'
       )
+    `);
+
+    // 기존 users 테이블의 email 컬럼에서 NOT NULL 제약조건 제거 (마이그레이션)
+    await pool.query(`
+      DO $$ 
+      BEGIN
+        BEGIN
+          ALTER TABLE users ALTER COLUMN email DROP NOT NULL;
+        EXCEPTION
+          WHEN others THEN NULL;
+        END;
+      END $$;
     `);
 
     // Pets 테이블

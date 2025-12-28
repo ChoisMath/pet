@@ -85,39 +85,39 @@ const authenticateToken = (req, res, next) => {
 // 회원가입
 app.post("/api/auth/register", async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, password } = req.body;
 
     // 유효성 검사
-    if (!username || !email || !password) {
+    if (!username || !password) {
       return res.status(400).json({ error: "모든 필드를 입력해주세요." });
     }
 
-    if (password.length < 6) {
+    if (password.length < 1) {
       return res
         .status(400)
-        .json({ error: "비밀번호는 6자 이상이어야 합니다." });
+        .json({ error: "비밀번호는 1자 이상이어야 합니다." });
     }
 
-    // 중복 확인
+    // 중복 확인 (사용자명만 체크)
     const existingUser = await pool.query(
-      "SELECT id FROM users WHERE username = $1 OR email = $2",
-      [username, email]
+      "SELECT id FROM users WHERE username = $1",
+      [username]
     );
 
     if (existingUser.rows.length > 0) {
       return res
         .status(400)
-        .json({ error: "이미 존재하는 사용자명 또는 이메일입니다." });
+        .json({ error: "이미 존재하는 사용자명입니다." });
     }
 
     // 비밀번호 해시
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    // 사용자 생성
+    // 사용자 생성 (이메일 없이)
     const result = await pool.query(
-      "INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3) RETURNING id, username, email, created_at",
-      [username, email, passwordHash]
+      "INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING id, username, created_at",
+      [username, passwordHash]
     );
 
     const user = result.rows[0];
