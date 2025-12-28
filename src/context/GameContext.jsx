@@ -145,9 +145,9 @@ const calculateUpgradeCost = (baseCost, currentLevel) => {
   return Number.isNaN(cost) ? 100 : cost;
 };
 
-// 음식 가격 계산
+// 음식 가격 계산 (Lv당 10배 증가)
 const calculateFoodPrice = (basePrice, level) => {
-  return basePrice * Math.pow(2, level - 1);
+  return basePrice * Math.pow(10, level - 1);
 };
 
 // 음식 레벨업 비용
@@ -155,12 +155,18 @@ const calculateFoodUpgradeCost = (basePrice, level) => {
   return calculateFoodPrice(basePrice, level) * 10;
 };
 
-// 알바 잠금해제/업그레이드 비용 (등차수열: baseCost + level * costIncrement)
+// 알바 잠금해제/업그레이드 비용
 const calculateJobCost = (jobType, currentLevel) => {
   const job = JOB_TYPES[jobType];
   if (!job) return 0;
-  // 레벨 0(해금): baseCost, 레벨 1 업그레이드: baseCost + costIncrement, ...
-  return job.baseCost + currentLevel * job.costIncrement;
+  
+  // 해금(Lv0): 기본 비용 유지
+  if (currentLevel === 0) {
+    return job.baseCost;
+  }
+  
+  // 업그레이드: Lv당 10배씩 증가 (Lv1->2: Base*10, Lv2->3: Base*100)
+  return job.baseCost * Math.pow(10, currentLevel);
 };
 
 // 알바 초당 수입 계산 (등차수열)
@@ -184,13 +190,12 @@ const calculateTotalAssetMultiplier = (assets) => {
   return multiplier;
 };
 
-// 자산 업그레이드 비용 계산
-// 자산 업그레이드 비용 계산 (Lv마다 1.5배 증가)
+// 자산 업그레이드 비용 계산 (Lv마다 10배 증가)
 const calculateAssetCost = (assetType, currentLevel) => {
   const asset = ASSET_TYPES[assetType];
   if (!asset) return 0;
-  // 비용 = baseCost * (1.5 ^ currentLevel)
-  return Math.floor(asset.baseCost * Math.pow(1.5, currentLevel));
+  // 비용 = baseCost * (10 ^ currentLevel)
+  return Math.floor(asset.baseCost * Math.pow(10, currentLevel));
 };
 
 // 도망간 펫 소환 비용 (레벨 * 100)
@@ -661,19 +666,31 @@ const gameReducer = (state, action) => {
 
     case ActionTypes.WAKE_PET: {
       const { petId } = action.payload;
+      const pet = state.pets.find(p => p.id === petId);
+      
+      if (!pet) return state;
+      
+      // 에너지가 0이면 깨울 수 없음
+      if (pet.stats.energy <= 0) {
+        return {
+          ...state,
+          notifications: [
+            ...state.notifications,
+            { id: Date.now(), message: '😴 너무 피곤해서 일어날 수 없어요!', type: 'warning' }
+          ]
+        };
+      }
+
       return {
         ...state,
-        pets: state.pets.map(pet => 
-          pet.id === petId
+        pets: state.pets.map(p => 
+          p.id === petId
             ? {
-                ...pet,
-                state: 'idle',
-                stats: {
-                  ...pet.stats,
-                  energy: 100
-                }
+                ...p,
+                state: 'idle'
+                // 깨울 때 에너지 100으로 초기화하지 않음
               }
-            : pet
+            : p
         )
       };
     }
@@ -1110,6 +1127,19 @@ const gameReducer = (state, action) => {
           // 배고픔 0, 행복 0, 또는 똥 5개 이상이면 도망
           const hasRunAway = newStats.hunger <= 0 || newStats.happiness <= 0 || newPoopCount >= 5;
           
+          // 에너지가 0이 되면 강제 수면
+          let nextState = pet.state;
+          let currentJob = pet.currentJob;
+          let specialActivity = pet.specialActivity;
+          
+          if (newStats.energy <= 0 && pet.state !== 'sleep') {
+            nextState = 'sleep';
+            currentJob = null; // 알바 중지
+            specialActivity = null; // 특수 활동 중지
+          } else if (pet.state === 'eating' || (pet.state === 'playing' && !pet.specialActivity)) {
+            nextState = 'idle';
+          }
+          
           return {
             ...pet,
             stats: newStats,
@@ -1117,9 +1147,9 @@ const gameReducer = (state, action) => {
             mood: newMood,
             isSick: newIsSick,
             hasRunAway,
-            state: pet.state === 'eating' || (pet.state === 'playing' && !pet.specialActivity)
-              ? 'idle' 
-              : pet.state
+            state: nextState,
+            currentJob,
+            specialActivity
           };
         })
       };

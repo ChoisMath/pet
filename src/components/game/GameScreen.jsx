@@ -3,6 +3,8 @@ import { useGame } from '../../context/GameContext';
 import Pet from '../pets/Pet';
 import './GameScreen.css';
 
+import { formatNumber } from '../../utils/format';
+
 const GameScreen = () => {
   const { state, actions, getSelectedPet } = useGame();
   const [time, setTime] = useState(new Date());
@@ -108,7 +110,7 @@ const GameScreen = () => {
       {/* 코인 표시 (우측 상단) */}
       <div className="coin-display">
         <span className="coin-icon">🪙</span>
-        <span className="coin-amount">{state.coins}</span>
+        <span className="coin-amount">{formatNumber(state.coins)}</span>
       </div>
     </div>
   );

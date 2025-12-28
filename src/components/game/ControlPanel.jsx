@@ -3,6 +3,7 @@ import { useGame } from '../../context/GameContext';
 import StatBar from '../ui/StatBar';
 import ActionButton from '../ui/ActionButton';
 import SettingsModal from '../settings/SettingsModal';
+import { formatNumber } from '../../utils/format';
 import './ControlPanel.css';
 
 const ControlPanel = () => {
@@ -86,12 +87,12 @@ const ControlPanel = () => {
     // 비용 확인은 리듀서에서 처리하거나 여기서 미리 체크 가능
     const cost = 30 * selectedPet.growth.level;
     if (state.coins < cost) {
-      actions.notify(`청소 비용이 부족해요! (필요: ${cost}🪙)`, 'warning');
+      actions.notify(`청소 비용이 부족해요! (필요: ${formatNumber(cost)}🪙)`, 'warning');
       return;
     }
     
     actions.cleanPet(selectedPet.id);
-    actions.notify(`깨끗해졌어요! 🧹 (-${cost}🪙)`, 'success');
+    actions.notify(`깨끗해졌어요! 🧹 (-${formatNumber(cost)}🪙)`, 'success');
   };
 
   const handleHeal = () => {
@@ -238,7 +239,7 @@ const ControlPanel = () => {
                      selectedPet.currentJob ? '💼' :
                      selectedPet.specialActivity ? '🎮' : ''}
                   </span>
-                  <span className="click-coins">클릭당 +{getClickCoins()}🪙</span>
+                  <span className="click-coins">클릭당 +{formatNumber(getClickCoins())}🪙</span>
                   {selectedPet.state === 'sleep' && (
                     <span className="sleep-warning">😴 수면 중</span>
                   )}
@@ -286,7 +287,7 @@ const ControlPanel = () => {
                   />
                   <ActionButton 
                     icon="🧹" 
-                    label={`청소 (🪙${selectedPet ? 30 * selectedPet.growth.level : 0})`}
+                    label={`청소 (🪙${selectedPet ? formatNumber(30 * selectedPet.growth.level) : 0})`}
                     onClick={handleClean}
                     variant="secondary"
                     size="medium"
@@ -407,7 +408,7 @@ const ControlPanel = () => {
                     ? 'MAX' 
                     : state.upgrades.fingernail.level >= maxPetLevel
                     ? `Limit (Lv.${maxPetLevel})`
-                    : `🪙 ${getUpgradeCost('fingernail').toLocaleString()}`}
+                    : `🪙 ${formatNumber(getUpgradeCost('fingernail'))}`}
                 </button>
               </div>
 
@@ -430,7 +431,7 @@ const ControlPanel = () => {
                     ? 'MAX' 
                     : state.upgrades.toenail.level >= maxPetLevel
                     ? `Limit (Lv.${maxPetLevel})`
-                    : `🪙 ${getUpgradeCost('toenail').toLocaleString()}`}
+                    : `🪙 ${formatNumber(getUpgradeCost('toenail'))}`}
                 </button>
               </div>
 
@@ -453,7 +454,7 @@ const ControlPanel = () => {
                     ? 'MAX' 
                     : state.upgrades.fullbody.level >= maxPetLevel
                     ? `Limit (Lv.${maxPetLevel})`
-                    : `🪙 ${getUpgradeCost('fullbody').toLocaleString()}`}
+                    : `🪙 ${formatNumber(getUpgradeCost('fullbody'))}`}
                 </button>
               </div>
             </div>
@@ -490,7 +491,7 @@ const ControlPanel = () => {
                         <span className="item-name">{names[foodName]}</span>
                         <span className="item-level">Lv.{currentLevel}</span>
                         <span className="item-price" style={{ color: canBuy ? '#FFA000' : '#FF5252' }}>
-                          🪙 {price}
+                          🪙 {formatNumber(price)}
                         </span>
                         <span className="item-owned">x{food?.count || 0}</span>
                       </div>
@@ -500,7 +501,7 @@ const ControlPanel = () => {
                         disabled={!canUpgrade}
                         style={{ opacity: canUpgrade ? 1 : 0.5 }}
                       >
-                        {isMaxLevel ? `Limit (Lv.${maxPetLevel})` : `📈 ${upgradeCost.toLocaleString()}`}
+                        {isMaxLevel ? `Limit (Lv.${maxPetLevel})` : `📈 ${formatNumber(upgradeCost)}`}
                       </button>
                     </div>
                   );
@@ -531,7 +532,7 @@ const ControlPanel = () => {
                         <span className="item-name">알약</span>
                         <span className="item-level">Lv.{currentLevel}</span>
                         <span className="item-price" style={{ color: canBuy ? '#FFA000' : '#FF5252' }}>
-                          🪙 {price}
+                          🪙 {formatNumber(price)}
                         </span>
                         <span className="item-owned">x{pill?.count || 0}</span>
                       </div>
@@ -541,7 +542,7 @@ const ControlPanel = () => {
                         disabled={!canUpgrade}
                         style={{ opacity: canUpgrade ? 1 : 0.5 }}
                       >
-                        {isMaxLevel ? `Limit (Lv.${maxPetLevel})` : `📈 ${upgradeCost.toLocaleString()}`}
+                        {isMaxLevel ? `Limit (Lv.${maxPetLevel})` : `📈 ${formatNumber(upgradeCost)}`}
                       </button>
                     </div>
                   );
@@ -575,7 +576,7 @@ const ControlPanel = () => {
                         <span className="item-name">{assetInfo.name}</span>
                         <span className="item-level">Lv.{level}</span>
                         <span className="item-price" style={{ color: isMaxLevel || isPetLimited ? '#999' : (canBuy ? '#FFA000' : '#FF5252') }}>
-                          {isMaxLevel ? 'MAX' : isPetLimited ? `Limit (Lv.${maxPetLevel})` : `🪙 ${cost.toLocaleString()}`}
+                          {isMaxLevel ? 'MAX' : isPetLimited ? `Limit (Lv.${maxPetLevel})` : `🪙 ${formatNumber(cost)}`}
                         </span>
                         <span className="item-owned">x{assetInfo.multiplier}</span>
                       </div>
@@ -613,9 +614,9 @@ const ControlPanel = () => {
                   <div className="income-row">
                     <span>기본 수입 합계</span>
                     <span>
-                      {Object.entries(JOB_TYPES).reduce((acc, [type]) => {
+                      {formatNumber(Object.entries(JOB_TYPES).reduce((acc, [type]) => {
                         return acc + getJobEarnPerSecond(type, selectedPet.id);
-                      }, 0)} 코인/초
+                      }, 0))} 코인/초
                     </span>
                   </div>
                   <div className="income-row multiplier">
@@ -625,9 +626,9 @@ const ControlPanel = () => {
                   <div className="income-total">
                     <span>최종 시간당 수입</span>
                     <span className="highlight">
-                      +{(Object.entries(JOB_TYPES).reduce((acc, [type]) => {
+                      +{formatNumber(Object.entries(JOB_TYPES).reduce((acc, [type]) => {
                         return acc + getJobEarnPerSecond(type, selectedPet.id);
-                      }, 0) * getTotalAssetMultiplier()).toFixed(0)} 코인/초
+                      }, 0) * getTotalAssetMultiplier())} 코인/초
                     </span>
                   </div>
                 </div>
@@ -652,7 +653,7 @@ const ControlPanel = () => {
                           <div className="job-details">
                             <h4>{jobInfo.name}</h4>
                             {isUnlocked ? (
-                              <p className="income-text">Lv.{level} • +{earnPerSec} 코인/초 (기본)</p>
+                              <p className="income-text">Lv.{level} • +{formatNumber(earnPerSec)} 코인/초 (기본)</p>
                             ) : (
                               <p className="locked">🔒 잠금됨</p>
                             )}
@@ -666,7 +667,7 @@ const ControlPanel = () => {
                               disabled={!canUnlock}
                               style={{ opacity: canUnlock ? 1 : 0.5, cursor: canUnlock ? 'pointer' : 'not-allowed' }}
                             >
-                              🔓 해금 (🪙{unlockCost})
+                              🔓 해금 (🪙{formatNumber(unlockCost)})
                             </button>
                           ) : (
                             <button 
@@ -675,7 +676,7 @@ const ControlPanel = () => {
                               disabled={!canUpgrade}
                               style={{ opacity: canUpgrade ? 1 : 0.5, cursor: canUpgrade ? 'pointer' : 'not-allowed' }}
                             >
-                              {isPetLimited ? `Limit (Lv.${maxPetLevel})` : `📈 레벨업 (🪙${upgradeCost.toLocaleString()})`}
+                              {isPetLimited ? `Limit (Lv.${maxPetLevel})` : `📈 레벨업 (🪙${formatNumber(upgradeCost)})`}
                             </button>
                           )}
                         </div>
