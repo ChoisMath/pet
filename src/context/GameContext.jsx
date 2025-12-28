@@ -185,11 +185,12 @@ const calculateTotalAssetMultiplier = (assets) => {
 };
 
 // 자산 업그레이드 비용 계산
+// 자산 업그레이드 비용 계산 (Lv마다 1.5배 증가)
 const calculateAssetCost = (assetType, currentLevel) => {
   const asset = ASSET_TYPES[assetType];
   if (!asset) return 0;
-  // 비용 = baseCost * (multiplier ^ currentLevel)
-  return Math.floor(asset.baseCost * Math.pow(asset.multiplier, currentLevel));
+  // 비용 = baseCost * (1.5 ^ currentLevel)
+  return Math.floor(asset.baseCost * Math.pow(1.5, currentLevel));
 };
 
 // 도망간 펫 소환 비용 (레벨 * 100)
