@@ -92,6 +92,10 @@ const createPet = (type, name) => ({
   state: 'idle',
   mood: 'happy',
   
+  // 수면 에너지 회복용
+  sleepStart: null,
+  energyAtSleepStart: null,
+  
   position: {
     x: 50 + Math.random() * 200,
     y: 100
@@ -657,7 +661,9 @@ const gameReducer = (state, action) => {
                 state: 'sleep', 
                 specialActivity: null,
                 currentJob: null, // 수면 시 알바 중지
-                jobStartTime: null
+                jobStartTime: null,
+                sleepStart: Date.now(),
+                energyAtSleepStart: pet.stats.energy
               }
             : pet
         )
@@ -687,7 +693,9 @@ const gameReducer = (state, action) => {
           p.id === petId
             ? {
                 ...p,
-                state: 'idle'
+                state: 'idle',
+                sleepStart: null,
+                energyAtSleepStart: null
                 // 깨울 때 에너지 100으로 초기화하지 않음
               }
             : p
@@ -962,23 +970,40 @@ const gameReducer = (state, action) => {
     }
 
     case ActionTypes.LOAD_GAME: {
-      const loadedPets = (action.payload.pets || []).map(pet => ({
-        ...pet,
-        colorId: pet.colorId || getDefaultColor(pet.type),
-        jobs: pet.jobs || {
-          delivery: { level: 0, unlocked: false },
-          cleaning: { level: 0, unlocked: false },
-          tutoring: { level: 0, unlocked: false }
-        },
-        currentJob: pet.currentJob || null,
-        jobStartTime: pet.jobStartTime || null,
-        jobEarned: pet.jobEarned || 0,
-        // growth 데이터 안전성 확보
-        growth: {
-          ...pet.growth,
-          exp: Number.isNaN(Number(pet.growth?.exp)) ? 0 : Number(pet.growth?.exp)
+      const loadedPets = (action.payload.pets || []).map(pet => {
+        const mappedPet = {
+          ...pet,
+          colorId: pet.colorId || getDefaultColor(pet.type),
+          jobs: pet.jobs || {
+            delivery: { level: 0, unlocked: false },
+            cleaning: { level: 0, unlocked: false },
+            tutoring: { level: 0, unlocked: false }
+          },
+          currentJob: pet.currentJob || null,
+          jobStartTime: pet.jobStartTime || null,
+          jobEarned: pet.jobEarned || 0,
+          growth: {
+            ...pet.growth,
+            exp: Number.isNaN(Number(pet.growth?.exp)) ? 0 : Number(pet.growth?.exp)
+          }
+        };
+
+        // 오프라인 수면 에너지 회복
+        if (mappedPet.state === 'sleep' && mappedPet.sleepStart) {
+          const now = Date.now();
+          const elapsedSeconds = (now - mappedPet.sleepStart) / 1000;
+          if (elapsedSeconds > 0) {
+              const energyGain = elapsedSeconds * (0.5 / 60); // 분당 0.5
+              
+              if (mappedPet.energyAtSleepStart !== undefined) {
+                mappedPet.stats.energy = Math.min(100, mappedPet.energyAtSleepStart + energyGain);
+              } else {
+                mappedPet.stats.energy = Math.min(100, mappedPet.stats.energy + energyGain);
+              }
+          }
         }
-      }));
+        return mappedPet;
+      });
       
       // 코인 데이터 안전성 확보 (NaN 체크)
       const loadedCoins = action.payload.coins !== undefined && !Number.isNaN(Number(action.payload.coins))
@@ -1666,8 +1691,7 @@ export const GameProvider = ({ children }) => {
         }
       } else {
         dispatch({
-          type: ActionTypes.ADD_NOTIFICATION,
-          payload: { message: '💾 로컬에 저장되었습니다', type: 'success' }
+
         });
       }
     },
