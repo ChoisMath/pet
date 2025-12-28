@@ -14,14 +14,18 @@ const ActionButton = ({
   const [isOnCooldown, setIsOnCooldown] = React.useState(false);
   const [cooldownTime, setCooldownTime] = React.useState(0);
 
-  const handleClick = () => {
+  const handleClick = (e) => {
     if (disabled || isOnCooldown) return;
     
-    onClick?.();
+    onClick?.(e);
     
-    if (cooldown > 0) {
-      setIsOnCooldown(true);
-      setCooldownTime(cooldown);
+    // 기본 0.5초 딜레이 또는 지정된 쿨다운 적용
+    const effectiveCooldown = Math.max(cooldown, 0.5);
+    setIsOnCooldown(true);
+    
+    // 1초 이상일 때만 타이머 표시
+    if (effectiveCooldown >= 1) {
+      setCooldownTime(effectiveCooldown);
       
       const interval = setInterval(() => {
         setCooldownTime(prev => {
@@ -33,6 +37,11 @@ const ActionButton = ({
           return prev - 1;
         });
       }, 1000);
+    } else {
+      // 짧은 쿨다운은 타이머 없이 처리
+      setTimeout(() => {
+        setIsOnCooldown(false);
+      }, effectiveCooldown * 1000);
     }
   };
 
@@ -46,7 +55,7 @@ const ActionButton = ({
       {label && <span className="button-label">{label}</span>}
       {children}
       
-      {isOnCooldown && (
+      {isOnCooldown && cooldownTime > 0 && (
         <div className="cooldown-overlay">
           <span className="cooldown-time">{cooldownTime}s</span>
         </div>

@@ -198,6 +198,11 @@ const calculateRecallCost = (petLevel) => {
   return petLevel * 100;
 };
 
+// 펫 레벨업 필요 경험치 (레벨 1: 100, 3배씩 증가)
+const getPetRequiredExp = (level) => {
+  return 100 * Math.pow(3, level - 1);
+};
+
 // 액션 타입
 const ActionTypes = {
   ADD_PET: 'ADD_PET',
@@ -342,7 +347,23 @@ const gameReducer = (state, action) => {
     case ActionTypes.UPGRADE: {
       const { upgradeType } = action.payload;
       const upgrade = state.upgrades[upgradeType];
-      if (!upgrade || upgrade.level >= upgrade.maxLevel) return state;
+      if (!upgrade) return state;
+      
+      const maxPetLevel = state.pets.reduce((max, pet) => Math.max(max, pet.growth.level), 1);
+      
+      // 시스템 최대 레벨 또는 펫 최대 레벨 중 낮은 것에 도달했는지 확인
+      if (upgrade.level >= upgrade.maxLevel || upgrade.level >= maxPetLevel) {
+        if (upgrade.level >= maxPetLevel) {
+          return {
+             ...state,
+             notifications: [
+               ...state.notifications,
+               { id: Date.now(), message: `⚠️ 펫 최대 레벨(${maxPetLevel})까지만 강화할 수 있어요!`, type: 'warning' }
+             ]
+          };
+        }
+        return state;
+      }
       
       const cost = calculateUpgradeCost(upgrade.baseCost, upgrade.level);
       if (state.coins < cost) return state;
@@ -364,6 +385,18 @@ const gameReducer = (state, action) => {
       const { itemType, itemName } = action.payload;
       const item = state.inventory[itemType]?.[itemName];
       if (!item) return state;
+      
+      const maxPetLevel = state.pets.reduce((max, pet) => Math.max(max, pet.growth.level), 1);
+      
+      if (item.level >= maxPetLevel) {
+        return {
+           ...state,
+           notifications: [
+             ...state.notifications,
+             { id: Date.now(), message: `⚠️ 펫 최대 레벨(${maxPetLevel})까지만 강화할 수 있어요!`, type: 'warning' }
+           ]
+        };
+      }
       
       const cost = calculateFoodUpgradeCost(item.basePrice, item.level);
       if (state.coins < cost) return state;
@@ -407,24 +440,40 @@ const gameReducer = (state, action) => {
       
       return {
         ...state,
-        pets: state.pets.map(p => 
-          p.id === petId
-            ? {
-                ...p,
-                stats: {
-                  ...p.stats,
-                  hunger: Math.min(100, p.stats.hunger + actualHunger),
-                  happiness: Math.min(100, p.stats.happiness + actualHappiness),
-                },
-                state: 'eating',
-                lastFed: Date.now(),
-                growth: {
-                  ...p.growth,
-                  exp: p.growth.exp + 5
-                }
-              }
-            : p
-        ),
+        pets: state.pets.map(p => {
+          if (p.id !== petId) return p;
+          
+          // 경험치 계산: 기본 10 * 2^(음식레벨-1)
+          const expGain = 10 * Math.pow(2, foodItem.level - 1);
+          let newExp = p.growth.exp + expGain;
+          let newLevel = p.growth.level;
+          
+          while (true) {
+            const req = getPetRequiredExp(newLevel);
+            if (newExp >= req) {
+              newExp -= req;
+              newLevel++;
+            } else {
+              break;
+            }
+          }
+
+          return {
+            ...p,
+            stats: {
+              ...p.stats,
+              hunger: Math.min(100, p.stats.hunger + actualHunger),
+              happiness: Math.min(100, p.stats.happiness + actualHappiness),
+            },
+            state: 'eating',
+            lastFed: Date.now(),
+            growth: {
+              ...p.growth,
+              exp: newExp,
+              level: newLevel
+            }
+          };
+        }),
         inventory: {
           ...state.inventory,
           food: {
@@ -497,8 +546,20 @@ const gameReducer = (state, action) => {
       const pet = state.pets.find(p => p.id === petId);
       if (!pet || pet.state === 'sleep') return state;
       
+      const cleanCost = 30 * pet.growth.level;
+      if (state.coins < cleanCost) {
+        return {
+          ...state,
+          notifications: [
+            ...state.notifications,
+            { id: Date.now(), message: `⚠️ 청소 비용(${cleanCost}코인)이 부족해요!`, type: 'warning' }
+          ]
+        };
+      }
+      
       return {
         ...state,
+        coins: state.coins - cleanCost,
         pets: state.pets.map(p => 
           p.id === petId
             ? {
@@ -533,20 +594,40 @@ const gameReducer = (state, action) => {
       
       return {
         ...state,
-        pets: state.pets.map(p => 
-          p.id === petId
-            ? {
-                ...p,
-                stats: {
-                  ...p.stats,
-                  health: Math.min(100, p.stats.health + healAmount),
-                },
-                isSick: healAmount >= 50 ? false : p.isSick,
-                mood: 'happy',
-                state: 'idle'
-              }
-            : p
-        ),
+        pets: state.pets.map(p => {
+          if (p.id !== petId) return p;
+          
+          // 경험치 계산: 기본 10 * 2^(약품레벨-1)
+          const expGain = 10 * Math.pow(2, pillItem.level - 1);
+          let newExp = p.growth.exp + expGain;
+          let newLevel = p.growth.level;
+          
+          while (true) {
+            const req = getPetRequiredExp(newLevel);
+            if (newExp >= req) {
+              newExp -= req;
+              newLevel++;
+            } else {
+              break;
+            }
+          }
+          
+          return {
+            ...p,
+            stats: {
+              ...p.stats,
+              health: Math.min(100, p.stats.health + healAmount),
+            },
+            isSick: healAmount >= 50 ? false : p.isSick,
+            mood: 'happy',
+            state: 'idle',
+            growth: {
+              ...p.growth,
+              exp: newExp,
+              level: newLevel
+            }
+          };
+        }),
         inventory: {
           ...state.inventory,
           medicine: {
@@ -650,6 +731,18 @@ const gameReducer = (state, action) => {
       if (!pet || !pet.jobs[jobType]?.unlocked) return state;
       
       const currentLevel = pet.jobs[jobType].level;
+      const maxPetLevel = state.pets.reduce((max, p) => Math.max(max, p.growth.level), 1);
+      
+      if (currentLevel >= maxPetLevel) {
+        return {
+           ...state,
+           notifications: [
+             ...state.notifications,
+             { id: Date.now(), message: `⚠️ 펫 최대 레벨(${maxPetLevel})까지만 강화할 수 있어요!`, type: 'warning' }
+           ]
+        };
+      }
+      
       const cost = calculateJobCost(jobType, currentLevel);
       if (state.coins < cost) return state;
       
@@ -764,7 +857,21 @@ const gameReducer = (state, action) => {
       const currentAsset = state.assets[assetType];
       
       if (!asset || !currentAsset) return state;
-      if (currentAsset.level >= asset.maxLevel) return state;
+      
+      const maxPetLevel = state.pets.reduce((max, pet) => Math.max(max, pet.growth.level), 1);
+      
+      if (currentAsset.level >= asset.maxLevel || currentAsset.level >= maxPetLevel) {
+         if (currentAsset.level >= maxPetLevel) {
+          return {
+             ...state,
+             notifications: [
+               ...state.notifications,
+               { id: Date.now(), message: `⚠️ 펫 최대 레벨(${maxPetLevel})까지만 강화할 수 있어요!`, type: 'warning' }
+             ]
+          };
+        }
+        return state;
+      }
       
       const cost = calculateAssetCost(assetType, currentAsset.level);
       if (state.coins < cost) return state;
@@ -948,15 +1055,39 @@ const gameReducer = (state, action) => {
         ...state,
         lastSaveTime: Date.now(),
         pets: state.pets.map(pet => {
-          // 수면 중에는 상태 변화 없음
-          if (pet.hasRunAway || pet.state === 'sleep') return pet;
+          if (pet.hasRunAway) return pet;
+
+          // 수면 중 에너지 회복 (2분에 1 = 120초에 1, 틱당 3초 => 120/3 = 40틱에 1 => 틱당 0.025)
+          if (pet.state === 'sleep') {
+            return {
+              ...pet,
+              stats: {
+                ...pet.stats,
+                energy: Math.min(100, pet.stats.energy + 0.025)
+              }
+            };
+          }
           
           const newStats = { ...pet.stats };
           
           newStats.hunger = Math.max(0, newStats.hunger - 0.5);
           newStats.happiness = Math.max(0, newStats.happiness - 0.3);
-          newStats.energy = Math.max(0, newStats.energy - 0.2);
+          
+          // 깨어있는 동안 에너지 감소 (1분에 1 = 60초에 1, 틱당 3초 => 60/3 = 20틱에 1 => 틱당 0.05)
+          newStats.energy = Math.max(0, newStats.energy - 0.05);
+          
+          const prevCleanliness = newStats.cleanliness;
           newStats.cleanliness = Math.max(0, newStats.cleanliness - 0.1);
+          
+          // 청결도 70, 40, 10 도달 시 똥 생성
+          let newPoopCount = pet.poopCount;
+          if (
+            (prevCleanliness > 70 && newStats.cleanliness <= 70) ||
+            (prevCleanliness > 40 && newStats.cleanliness <= 40) ||
+            (prevCleanliness > 10 && newStats.cleanliness <= 10)
+          ) {
+            newPoopCount += 1;
+          }
           
           if (newStats.hunger < 20 || newStats.cleanliness < 20) {
             newStats.health = Math.max(0, newStats.health - 0.3);
@@ -977,11 +1108,12 @@ const gameReducer = (state, action) => {
           }
           
           // 배고픔 0, 행복 0, 또는 똥 5개 이상이면 도망
-          const hasRunAway = newStats.hunger <= 0 || newStats.happiness <= 0 || pet.poopCount >= 5;
+          const hasRunAway = newStats.hunger <= 0 || newStats.happiness <= 0 || newPoopCount >= 5;
           
           return {
             ...pet,
             stats: newStats,
+            poopCount: newPoopCount,
             mood: newMood,
             isSick: newIsSick,
             hasRunAway,
