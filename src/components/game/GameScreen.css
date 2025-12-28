@@ -3,8 +3,9 @@
 .game-screen {
   width: 100%;
   height: 100%;
+  min-height: 280px;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   transition: background 1s ease;
 }
 

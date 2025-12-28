@@ -73,7 +73,7 @@
   flex: 1;
   padding: 12px;
   overflow-y: auto;
-  max-height: 280px;
+  /* 작은 화면에서도 스크롤 가능 */
 }
 
 /* 행동 탭 */
