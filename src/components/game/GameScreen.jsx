@@ -71,23 +71,28 @@ const GameScreen = () => {
       </div>
 
       {/* 펫들 */}
-      <div className="pets-container">
-        {state.pets.length === 0 ? (
-          <div className="no-pets-message">
-            <span className="emoji">🥚</span>
-            <p>아직 펫이 없어요!</p>
-            <p>아래에서 새 펫을 입양해보세요 🐾</p>
-          </div>
-        ) : (
-          state.pets.map(pet => (
-            <Pet
-              key={pet.id}
-              pet={pet}
-              isSelected={pet.id === state.selectedPetId}
-              onClick={() => actions.selectPet(pet.id)}
-              size={100}
-            />
-          ))
+      <div className="pets-scroll-wrapper">
+        <div className="pets-container">
+          {state.pets.length === 0 ? (
+            <div className="no-pets-message">
+              <span className="emoji">🥚</span>
+              <p>아직 펫이 없어요!</p>
+              <p>아래에서 새 펫을 입양해보세요 🐾</p>
+            </div>
+          ) : (
+            state.pets.map(pet => (
+              <Pet
+                key={pet.id}
+                pet={pet}
+                isSelected={pet.id === state.selectedPetId}
+                onClick={() => actions.selectPet(pet.id)}
+                size={80}
+              />
+            ))
+          )}
+        </div>
+        {state.pets.length > 2 && (
+          <div className="scroll-hint">← 스와이프하여 펫 보기 →</div>
         )}
       </div>
 

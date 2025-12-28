@@ -138,19 +138,56 @@
   );
 }
 
-/* 펫 컨테이너 */
-.pets-container {
+/* 펫 스크롤 wrapper */
+.pets-scroll-wrapper {
   position: absolute;
-  bottom: 15%;
+  bottom: 10%;
   left: 0;
   width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: flex-end;
-  gap: 20px;
-  padding: 0 20px;
   z-index: 10;
-  flex-wrap: wrap;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 펫 컨테이너 - 가로 스크롤 */
+.pets-container {
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 0 20px 10px 20px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.pets-container::-webkit-scrollbar {
+  display: none;
+}
+
+.pets-container > * {
+  scroll-snap-align: center;
+  flex-shrink: 0;
+}
+
+/* 스크롤 힌트 */
+.scroll-hint {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(0, 0, 0, 0.3);
+  padding: 4px 12px;
+  border-radius: 12px;
+  margin-top: 5px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
 }
 
 /* 펫 없음 메시지 */

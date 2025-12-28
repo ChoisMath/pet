@@ -258,6 +258,7 @@ const ControlPanel = () => {
                 </div>
                 
                 <div className="action-buttons">
+                  {/* 사과 - 모든 펫 */}
                   <ActionButton 
                     icon="🍎" 
                     label={`사과 (${state.inventory.food.apple?.count || 0})`}
@@ -266,14 +267,28 @@ const ControlPanel = () => {
                     size="medium"
                     disabled={selectedPet.state === 'sleep'}
                   />
-                  <ActionButton 
-                    icon="🍖" 
-                    label={`고기 (${state.inventory.food.meat?.count || 0})`}
-                    onClick={() => handleFeed('meat')}
-                    variant="warning"
-                    size="medium"
-                    disabled={selectedPet.state === 'sleep'}
-                  />
+                  {/* 고기 - 강아지/고양이만 */}
+                  {(selectedPet.type === 'dog' || selectedPet.type === 'cat') && (
+                    <ActionButton 
+                      icon="🍖" 
+                      label={`고기 (${state.inventory.food.meat?.count || 0})`}
+                      onClick={() => handleFeed('meat')}
+                      variant="warning"
+                      size="medium"
+                      disabled={selectedPet.state === 'sleep'}
+                    />
+                  )}
+                  {/* 쿠키 - 햄스터만 */}
+                  {selectedPet.type === 'hamster' && (
+                    <ActionButton 
+                      icon="🍪" 
+                      label={`쿠키 (${state.inventory.food.cookie?.count || 0})`}
+                      onClick={() => handleFeed('cookie')}
+                      variant="warning"
+                      size="medium"
+                      disabled={selectedPet.state === 'sleep'}
+                    />
+                  )}
                   <ActionButton 
                     icon={playInfo?.icon || '🎾'} 
                     label={playInfo?.label || '놀기'}
