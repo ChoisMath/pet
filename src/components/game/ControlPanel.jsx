@@ -699,7 +699,7 @@ const ControlPanel = () => {
             </div>
 
             <div className="game-info">
-              <p>🐾 다마고치 v2.0</p>
+              <p>🐾 다마고치 v2.2 (Patch: Price Fix)</p>
               <p>React + Vite</p>
             </div>
           </div>
