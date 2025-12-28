@@ -72,7 +72,7 @@
 .tab-content {
   flex: 1;
   padding: 12px;
-  padding-bottom: 40px; /* 마지막 요소가 스크롤되어 보이도록 여유 공간 */
+  padding-bottom: 80px; /* 마지막 요소가 스크롤되어 보이도록 충분한 여유 공간 */
   overflow-y: auto;
   -webkit-overflow-scrolling: touch; /* iOS 부드러운 스크롤 */
 }
