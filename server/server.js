@@ -319,8 +319,8 @@ app.get("/api/game/load", authenticateToken, async (req, res) => {
       coins: user?.coins !== undefined && user?.coins !== null ? user.coins : 100,
       upgrades: user?.upgrades || {
         fingernail: { level: 0, maxLevel: 20, baseCost: 100, coinPerClick: 1 },
-        toenail: { level: 0, maxLevel: 20, baseCost: 1000, coinPerClick: 5 },
-        fullbody: { level: 0, maxLevel: 20, baseCost: 10000, coinPerClick: 20 },
+        toenail: { level: 0, maxLevel: 20, baseCost: 500, coinPerClick: 5 },
+        fullbody: { level: 0, maxLevel: 20, baseCost: 2000, coinPerClick: 20 },
       },
       pets,
       selectedPetId: pets[0]?.id || null,
@@ -456,6 +456,42 @@ app.post("/api/game/save", authenticateToken, async (req, res) => {
   } catch (error) {
     console.error("게임 저장 에러:", error);
     res.status(500).json({ error: "서버 에러가 발생했습니다." });
+  }
+});
+
+// 게임 데이터 초기화 (Reset)
+app.post("/api/game/reset", authenticateToken, async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const userId = req.user.id;
+    await client.query("BEGIN");
+
+    // 1. 펫 삭제
+    await client.query("DELETE FROM pets WHERE user_id = $1", [userId]);
+
+    // 2. 인벤토리 삭제
+    await client.query("DELETE FROM inventory WHERE user_id = $1", [userId]);
+
+    // 3. 게임 상태 삭제
+    await client.query("DELETE FROM game_state WHERE user_id = $1", [userId]);
+
+    // 4. 유저 정보 초기화 (코인, 업그레이드)
+    await client.query(
+      `UPDATE users 
+       SET coins = 100, 
+           upgrades = '{"fingernail":{"level":0,"maxLevel":20,"baseCost":100,"coinPerClick":1},"toenail":{"level":0,"maxLevel":20,"baseCost":500,"coinPerClick":5},"fullbody":{"level":0,"maxLevel":20,"baseCost":2000,"coinPerClick":20}}' 
+       WHERE id = $1`,
+      [userId]
+    );
+
+    await client.query("COMMIT");
+    res.json({ message: "게임 데이터가 초기화되었습니다." });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error(err);
+    res.status(500).json({ error: "초기화 중 오류 발생" });
+  } finally {
+    client.release();
   }
 });
 

@@ -27,8 +27,8 @@ const initialState = {
   // 강화 시스템
   upgrades: {
     fingernail: { level: 0, maxLevel: 20, baseCost: 100, coinPerClick: 1 },
-    toenail: { level: 0, maxLevel: 20, baseCost: 1000, coinPerClick: 5 },
-    fullbody: { level: 0, maxLevel: 20, baseCost: 10000, coinPerClick: 20 }
+    toenail: { level: 0, maxLevel: 20, baseCost: 500, coinPerClick: 5 },
+    fullbody: { level: 0, maxLevel: 20, baseCost: 2000, coinPerClick: 20 }
   },
   
   // 인벤토리 (레벨 포함)
