@@ -954,9 +954,10 @@ export const GameProvider = ({ children }) => {
         try {
           console.log('🔄 서버에서 게임 데이터 로드 중...');
           const serverData = await api.loadGameData();
-          if (serverData && (serverData.pets?.length > 0 || serverData.coins > 100)) {
+          // 서버 데이터가 있으면 사용 (coins가 있거나 pets가 있거나)
+          if (serverData && (serverData.coins !== undefined || serverData.pets)) {
             gameData = serverData;
-            console.log('✅ 서버에서 게임 데이터 로드 완료');
+            console.log('✅ 서버에서 게임 데이터 로드 완료:', serverData);
           }
         } catch (error) {
           console.error('서버 로드 실패, 로컬 데이터 사용:', error);
