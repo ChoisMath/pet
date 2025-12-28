@@ -78,10 +78,12 @@
 
 /* 컨트롤 영역 */
 .control-area {
-  flex-shrink: 0;
-  height: auto;
-  max-height: 55%;
-  min-height: 200px;
+  flex: 0 0 auto;
+  min-height: 280px;
+  height: 60vh;
+  max-height: 450px;
+  display: flex;
+  flex-direction: column;
 }
 
 /* 로딩 화면 */
@@ -135,8 +137,8 @@
 /* 작은 화면 */
 @media (max-height: 600px) {
   .control-area {
-    min-height: 150px;
-    max-height: none;
+    min-height: 180px;
+    max-height: 65%;
   }
   
   .app {
@@ -145,7 +147,8 @@
   }
   
   .game-area {
-    min-height: 250px;
+    min-height: 200px;
+    flex-shrink: 1;
   }
 }
 

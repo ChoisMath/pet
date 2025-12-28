@@ -2,6 +2,8 @@
 
 .stat-bar-container {
   width: 100%;
+  min-height: 35px;
+  overflow: visible;
 }
 
 .stat-bar-container.size-small {
