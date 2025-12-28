@@ -141,7 +141,8 @@ const calculateClickCoins = (upgrades) => {
 
 // 강화 비용 계산
 const calculateUpgradeCost = (baseCost, currentLevel) => {
-  return baseCost * Math.pow(2, currentLevel);
+  const cost = (baseCost || 100) * Math.pow(2, currentLevel || 0);
+  return Number.isNaN(cost) ? 100 : cost;
 };
 
 // 음식 가격 계산
@@ -842,14 +843,16 @@ const gameReducer = (state, action) => {
         ? Number(action.payload.coins)
         : initialState.coins;
 
-      // 업그레이드 데이터 병합 (누락된 항목 복구)
+      // 업그레이드 데이터 병합 (레벨만 로드하고 기본 설정값은 initialState 유지)
       const loadedUpgrades = { ...initialState.upgrades };
       if (action.payload.upgrades) {
         Object.keys(initialState.upgrades).forEach(key => {
           if (action.payload.upgrades[key]) {
+             // 서버/로컬 데이터에서 level만 가져오고, 나머지는 초기 설정값 사용
+             // 이렇게 해야 baseCost 등이 손상되어도 복구됨
              loadedUpgrades[key] = {
-               ...initialState.upgrades[key], // 기본 설정(비용 등) 유지
-               ...action.payload.upgrades[key] // 레벨 등 상태 덮어쓰기
+               ...initialState.upgrades[key], 
+               level: action.payload.upgrades[key].level || 0
              };
           }
         });
