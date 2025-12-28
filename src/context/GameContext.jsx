@@ -944,23 +944,51 @@ export const GameProvider = ({ children }) => {
   const activityTimers = useRef({});
   const isResetting = useRef(false);
 
-  // 로컬 스토리지에서 게임 로드
+  // 서버 또는 로컬 스토리지에서 게임 로드
   useEffect(() => {
-    const savedGame = localStorage.getItem('tamagotchi_save');
-    if (savedGame) {
-      try {
-        const parsed = JSON.parse(savedGame);
-        dispatch({ type: ActionTypes.LOAD_GAME, payload: parsed });
+    const loadGameData = async () => {
+      let gameData = null;
+      
+      // 로그인 상태면 서버에서 먼저 로드 시도
+      if (api.isLoggedIn()) {
+        try {
+          console.log('🔄 서버에서 게임 데이터 로드 중...');
+          const serverData = await api.loadGameData();
+          if (serverData && (serverData.pets?.length > 0 || serverData.coins > 100)) {
+            gameData = serverData;
+            console.log('✅ 서버에서 게임 데이터 로드 완료');
+          }
+        } catch (error) {
+          console.error('서버 로드 실패, 로컬 데이터 사용:', error);
+        }
+      }
+      
+      // 서버 데이터가 없으면 로컬 스토리지에서 로드
+      if (!gameData) {
+        const savedGame = localStorage.getItem('tamagotchi_save');
+        if (savedGame) {
+          try {
+            gameData = JSON.parse(savedGame);
+            console.log('📁 로컬 스토리지에서 게임 데이터 로드');
+          } catch (e) {
+            console.error('로컬 데이터 파싱 실패:', e);
+          }
+        }
+      }
+      
+      // 데이터가 있으면 로드
+      if (gameData) {
+        dispatch({ type: ActionTypes.LOAD_GAME, payload: gameData });
         
-        if (parsed.lastSaveTime) {
-          const offlineSeconds = (Date.now() - parsed.lastSaveTime) / 1000;
+        if (gameData.lastSaveTime) {
+          const offlineSeconds = (Date.now() - gameData.lastSaveTime) / 1000;
           if (offlineSeconds > 60) {
             dispatch({ 
               type: ActionTypes.APPLY_OFFLINE_PENALTY, 
               payload: { offlineSeconds } 
             });
             
-            const awakePets = parsed.pets?.filter(p => p.state !== 'sleep') || [];
+            const awakePets = gameData.pets?.filter(p => p.state !== 'sleep') || [];
             if (awakePets.length > 0) {
               setTimeout(() => {
                 dispatch({
@@ -974,10 +1002,10 @@ export const GameProvider = ({ children }) => {
             }
           }
         }
-      } catch (e) {
-        console.error('Failed to load save:', e);
       }
-    }
+    };
+    
+    loadGameData();
   }, []);
 
   // 서버 저장 함수 (debounced)
@@ -991,6 +1019,7 @@ export const GameProvider = ({ children }) => {
         upgrades: gameState.upgrades,
         pets: gameState.pets,
         inventory: gameState.inventory,
+        assets: gameState.assets,
         partTimeJob: { isWorking: false },
         gameTime: gameState.gameTime,
         settings: gameState.settings
@@ -1065,6 +1094,7 @@ export const GameProvider = ({ children }) => {
           upgrades: state.upgrades,
           pets: state.pets,
           inventory: state.inventory,
+          assets: state.assets,
           partTimeJob: { isWorking: false },
           gameTime: state.gameTime,
           settings: state.settings

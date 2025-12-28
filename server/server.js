@@ -316,6 +316,13 @@ app.get("/api/game/load", authenticateToken, async (req, res) => {
       pets,
       selectedPetId: pets[0]?.id || null,
       inventory,
+      assets: gameState.assets || {
+        paperBox: { level: 0 },
+        woodBox: { level: 0 },
+        woodHouse: { level: 0 },
+        plasticHouse: { level: 0 },
+        concreteHouse: { level: 0 }
+      },
       partTimeJob: gameState.part_time_job || { isWorking: false },
       gameTime: gameState.game_time || { day: 1, hour: 12, isNight: false },
       lastSaveTime: gameState.last_save_time
@@ -341,6 +348,7 @@ app.post("/api/game/save", authenticateToken, async (req, res) => {
       upgrades,
       pets,
       inventory,
+      assets,
       partTimeJob,
       gameTime,
       settings,
@@ -409,18 +417,19 @@ app.post("/api/game/save", authenticateToken, async (req, res) => {
         }
       }
 
-      // 게임 상태 업데이트
+      // 게임 상태 업데이트 (assets 포함)
       await client.query(
         `
-        INSERT INTO game_state (user_id, part_time_job, game_time, settings, last_save_time)
-        VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+        INSERT INTO game_state (user_id, part_time_job, game_time, assets, settings, last_save_time)
+        VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
         ON CONFLICT (user_id)
-        DO UPDATE SET part_time_job = $2, game_time = $3, settings = $4, last_save_time = CURRENT_TIMESTAMP
+        DO UPDATE SET part_time_job = $2, game_time = $3, assets = $4, settings = $5, last_save_time = CURRENT_TIMESTAMP
       `,
         [
           userId,
           JSON.stringify(partTimeJob),
           JSON.stringify(gameTime),
+          JSON.stringify(assets || {}),
           JSON.stringify(settings),
         ]
       );

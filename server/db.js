@@ -81,9 +81,21 @@ export const initializeDatabase = async () => {
         user_id INTEGER UNIQUE REFERENCES users(id) ON DELETE CASCADE,
         part_time_job JSONB DEFAULT '{"isWorking":false,"jobType":null,"startTime":null,"earnRate":1,"totalEarned":0}',
         game_time JSONB DEFAULT '{"day":1,"hour":12,"isNight":false}',
+        assets JSONB DEFAULT '{"paperBox":{"level":0},"woodBox":{"level":0},"woodHouse":{"level":0},"plasticHouse":{"level":0},"concreteHouse":{"level":0}}',
         last_save_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         settings JSONB DEFAULT '{"soundEnabled":true,"vibrationEnabled":true}'
       )
+    `);
+
+    // assets 컬럼이 없으면 추가 (기존 테이블 업데이트용)
+    await pool.query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                       WHERE table_name='game_state' AND column_name='assets') THEN
+          ALTER TABLE game_state ADD COLUMN assets JSONB DEFAULT '{"paperBox":{"level":0},"woodBox":{"level":0},"woodHouse":{"level":0},"plasticHouse":{"level":0},"concreteHouse":{"level":0}}';
+        END IF;
+      END $$;
     `);
 
     console.log('✅ 데이터베이스 테이블 초기화 완료');
