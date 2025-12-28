@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useReducer, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useRef, useCallback } from 'react';
 import { getDefaultColor } from '../utils/petColors';
+import * as api from '../services/api';
 
 // 알바 정보 - 펫별로 관리, 레벨당 분당 획득 (등차수열)
 const JOB_TYPES = {
@@ -909,17 +910,102 @@ export const GameProvider = ({ children }) => {
     }
   }, []);
 
+  // 서버 저장 함수 (debounced)
+  const lastServerSave = useRef(0);
+  const serverSaveTimeout = useRef(null);
+  
+  const saveToServerDirect = async (gameState) => {
+    try {
+      await api.saveGameData({
+        coins: gameState.coins,
+        upgrades: gameState.upgrades,
+        pets: gameState.pets,
+        inventory: gameState.inventory,
+        partTimeJob: { isWorking: false },
+        gameTime: gameState.gameTime,
+        settings: gameState.settings
+      });
+      console.log('✅ 서버 저장 완료');
+    } catch (error) {
+      console.error('❌ 서버 저장 실패:', error);
+    }
+  };
+
+  const saveToServer = useCallback(async (gameState) => {
+    if (!api.isLoggedIn()) return;
+    
+    // 최소 5초 간격으로 서버 저장
+    const now = Date.now();
+    if (now - lastServerSave.current < 5000) {
+      // 5초 내에 다시 호출되면 타임아웃 설정
+      if (serverSaveTimeout.current) {
+        clearTimeout(serverSaveTimeout.current);
+      }
+      serverSaveTimeout.current = setTimeout(() => {
+        saveToServerDirect(gameState);
+        lastServerSave.current = Date.now();
+      }, 5000 - (now - lastServerSave.current));
+      return;
+    }
+    
+    lastServerSave.current = now;
+    
+    try {
+      await api.saveGameData({
+        coins: gameState.coins,
+        upgrades: gameState.upgrades,
+        pets: gameState.pets,
+        inventory: gameState.inventory,
+        partTimeJob: { isWorking: false },
+        gameTime: gameState.gameTime,
+        settings: gameState.settings
+      });
+      console.log('✅ 서버 저장 완료');
+    } catch (error) {
+      console.error('❌ 서버 저장 실패:', error);
+    }
+  }, []);
+
   // 게임 자동 저장
   useEffect(() => {
-    const saveInterval = setInterval(() => {
+    // 로컬 저장 (10초마다)
+    const localSaveInterval = setInterval(() => {
       localStorage.setItem('tamagotchi_save', JSON.stringify(state));
     }, 10000);
+    
+    // 서버 저장 (30초마다, 로그인 상태일 때만)
+    const serverSaveInterval = setInterval(() => {
+      if (api.isLoggedIn()) {
+        saveToServer(state);
+      }
+    }, 30000);
     
     const handleBeforeUnload = (e) => {
       // 초기화 중이면 저장하지 않음
       if (isResetting.current) return;
       
+      // 로컬 저장
       localStorage.setItem('tamagotchi_save', JSON.stringify(state));
+      
+      // 서버 저장 시도 (navigator.sendBeacon 사용)
+      if (api.isLoggedIn()) {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+        const data = JSON.stringify({
+          coins: state.coins,
+          upgrades: state.upgrades,
+          pets: state.pets,
+          inventory: state.inventory,
+          partTimeJob: { isWorking: false },
+          gameTime: state.gameTime,
+          settings: state.settings
+        });
+        
+        // sendBeacon으로 페이지 닫을 때도 저장
+        navigator.sendBeacon(
+          `${apiUrl}/game/save`,
+          new Blob([data], { type: 'application/json' })
+        );
+      }
       
       const awakePets = state.pets.filter(p => p.state !== 'sleep');
       if (awakePets.length > 0) {
@@ -929,13 +1015,29 @@ export const GameProvider = ({ children }) => {
       }
     };
     
+    // visibilitychange로 탭 전환 시에도 저장
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        localStorage.setItem('tamagotchi_save', JSON.stringify(state));
+        if (api.isLoggedIn()) {
+          saveToServer(state);
+        }
+      }
+    };
+    
     window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     
     return () => {
-      clearInterval(saveInterval);
+      clearInterval(localSaveInterval);
+      clearInterval(serverSaveInterval);
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (serverSaveTimeout.current) {
+        clearTimeout(serverSaveTimeout.current);
+      }
     };
-  }, [state]);
+  }, [state, saveToServer]);
 
   // 게임 틱 (3초마다)
   useEffect(() => {
