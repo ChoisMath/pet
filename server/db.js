@@ -57,8 +57,20 @@ export const initializeDatabase = async () => {
         has_run_away BOOLEAN DEFAULT FALSE,
         position JSONB DEFAULT '{"x":150,"y":100}',
         direction INTEGER DEFAULT 1,
+        jobs JSONB DEFAULT '{"delivery":{"level":0,"unlocked":false},"cleaning":{"level":0,"unlocked":false},"tutoring":{"level":0,"unlocked":false}}',
         last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
+    `);
+
+    // jobs 컬럼이 없으면 추가 (기존 테이블 업데이트용)
+    await pool.query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                       WHERE table_name='pets' AND column_name='jobs') THEN
+          ALTER TABLE pets ADD COLUMN jobs JSONB DEFAULT '{"delivery":{"level":0,"unlocked":false},"cleaning":{"level":0,"unlocked":false},"tutoring":{"level":0,"unlocked":false}}';
+        END IF;
+      END $$;
     `);
 
     // Inventory 테이블

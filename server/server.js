@@ -301,6 +301,14 @@ app.get("/api/game/load", authenticateToken, async (req, res) => {
       lastPlayed: new Date(pet.last_updated).getTime(),
       specialActivity: null,
       activityProgress: 0,
+      jobs: pet.jobs || {
+        delivery: { level: 0, unlocked: false },
+        cleaning: { level: 0, unlocked: false },
+        tutoring: { level: 0, unlocked: false }
+      },
+      currentJob: null,
+      jobStartTime: null,
+      jobEarned: 0
     }));
 
     const gameState = gameStateResult.rows[0] || {};
@@ -371,8 +379,8 @@ app.post("/api/game/save", authenticateToken, async (req, res) => {
       for (const pet of pets) {
         await client.query(
           `
-          INSERT INTO pets (user_id, pet_id, type, name, stats, growth, state, mood, poop_count, is_sick, has_run_away, position, direction, last_updated)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, CURRENT_TIMESTAMP)
+          INSERT INTO pets (user_id, pet_id, type, name, stats, growth, state, mood, poop_count, is_sick, has_run_away, position, direction, jobs, last_updated)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, CURRENT_TIMESTAMP)
         `,
           [
             userId,
@@ -388,6 +396,7 @@ app.post("/api/game/save", authenticateToken, async (req, res) => {
             pet.hasRunAway,
             JSON.stringify(pet.position),
             pet.direction,
+            JSON.stringify(pet.jobs || {}),
           ]
         );
       }
