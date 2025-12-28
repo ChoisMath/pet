@@ -859,11 +859,25 @@ const gameReducer = (state, action) => {
         });
       }
       
+      // 자산 데이터 병합
+      const loadedAssets = { ...initialState.assets };
+      if (action.payload.assets) {
+        Object.keys(initialState.assets).forEach(key => {
+          if (action.payload.assets[key]) {
+             loadedAssets[key] = {
+               ...initialState.assets[key],
+               level: action.payload.assets[key].level || 0
+             };
+          }
+        });
+      }
+
       return {
         ...initialState,
         ...action.payload,
         coins: loadedCoins,
         upgrades: loadedUpgrades,
+        assets: loadedAssets,
         pets: loadedPets,
         inventory: {
           food: {
