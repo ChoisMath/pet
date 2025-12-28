@@ -131,10 +131,11 @@ const getDefaultName = (type) => {
 
 // 클릭당 코인 계산
 const calculateClickCoins = (upgrades) => {
+  if (!upgrades) return 1;
   const base = 1;
-  const fingernail = upgrades.fingernail.level * upgrades.fingernail.coinPerClick;
-  const toenail = upgrades.toenail.level * upgrades.toenail.coinPerClick;
-  const fullbody = upgrades.fullbody.level * upgrades.fullbody.coinPerClick;
+  const fingernail = (upgrades.fingernail?.level || 0) * (upgrades.fingernail?.coinPerClick || 1);
+  const toenail = (upgrades.toenail?.level || 0) * (upgrades.toenail?.coinPerClick || 5);
+  const fullbody = (upgrades.fullbody?.level || 0) * (upgrades.fullbody?.coinPerClick || 20);
   return base + fingernail + toenail + fullbody;
 };
 
@@ -326,9 +327,13 @@ const gameReducer = (state, action) => {
       if (!pet || pet.state === 'sleep') return state;
       
       const coinsEarned = calculateClickCoins(state.upgrades);
+      
+      // 현재 코인이 NaN이면 0으로 간주
+      const currentCoins = Number.isNaN(Number(state.coins)) ? 0 : state.coins;
+      
       return {
         ...state,
-        coins: state.coins + coinsEarned
+        coins: currentCoins + coinsEarned
       };
     }
 
