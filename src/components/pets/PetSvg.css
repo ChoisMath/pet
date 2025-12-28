@@ -1,0 +1,177 @@
+/* ===== 펫 SVG 공통 스타일 ===== */
+
+.pet-svg {
+  transition: transform 0.3s ease;
+}
+
+/* 상태별 애니메이션 */
+.pet-svg.state-idle {
+  animation: float 3s ease-in-out infinite;
+}
+
+.pet-svg.state-sleep {
+  animation: none;
+  filter: brightness(0.9);
+}
+
+.pet-svg.state-eating {
+  animation: bounce 0.3s ease-in-out infinite;
+}
+
+.pet-svg.state-happy {
+  animation: bounce 0.5s ease-in-out 3;
+}
+
+.pet-svg.state-walking {
+  animation: walk-bounce 0.4s ease-in-out infinite;
+}
+
+.pet-svg.state-playing {
+  animation: bounce 0.4s ease-in-out infinite;
+}
+
+.pet-svg.state-sick {
+  animation: shake 0.5s ease-in-out infinite;
+  filter: hue-rotate(60deg) saturate(0.7);
+}
+
+/* 꼬리 애니메이션 */
+.tail .wagging {
+  animation: wag-tail 0.3s ease-in-out infinite;
+  transform-origin: 75px 65px;
+}
+
+.tail .swaying {
+  animation: sway-tail 2s ease-in-out infinite;
+  transform-origin: 78px 70px;
+}
+
+@keyframes wag-tail {
+  0%, 100% { transform: rotate(-10deg); }
+  50% { transform: rotate(10deg); }
+}
+
+@keyframes sway-tail {
+  0%, 100% { transform: rotate(-5deg); }
+  50% { transform: rotate(5deg); }
+}
+
+/* 다리 걷기 애니메이션 */
+.legs.walking .leg-left {
+  animation: walk-leg 0.4s ease-in-out infinite;
+}
+
+.legs.walking .leg-right {
+  animation: walk-leg 0.4s ease-in-out infinite 0.2s;
+}
+
+@keyframes walk-leg {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes walk-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+/* 귀 애니메이션 */
+.ear-left, .ear-right {
+  transition: transform 0.3s ease;
+}
+
+.pet-svg:hover .ear-left {
+  transform: rotate(-5deg);
+}
+
+.pet-svg:hover .ear-right {
+  transform: rotate(5deg);
+}
+
+/* ZZZ 애니메이션 */
+.zzz .z1 {
+  animation: zzz-float 2s ease-in-out infinite;
+}
+
+.zzz .z2 {
+  animation: zzz-float 2s ease-in-out infinite 0.3s;
+}
+
+.zzz .z3 {
+  animation: zzz-float 2s ease-in-out infinite 0.6s;
+}
+
+@keyframes zzz-float {
+  0%, 100% { 
+    opacity: 0.3; 
+    transform: translateY(0);
+  }
+  50% { 
+    opacity: 1; 
+    transform: translateY(-5px);
+  }
+}
+
+/* 수염 움직임 */
+.whiskers line {
+  transition: transform 0.3s ease;
+}
+
+.pet-svg:hover .whiskers line:nth-child(odd) {
+  transform: translateX(-2px);
+}
+
+.pet-svg:hover .whiskers line:nth-child(even) {
+  transform: translateX(2px);
+}
+
+/* 쳇바퀴 회전 */
+.wheel .animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 아픔 표시 */
+.sick-indicator {
+  animation: pulse 1s ease-in-out infinite;
+}
+
+/* 털실 바운스 */
+.yarn.animate-bounce {
+  animation: yarn-bounce 0.5s ease-in-out infinite;
+}
+
+@keyframes yarn-bounce {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  50% { transform: translateX(5px) rotate(10deg); }
+}
+
+/* 호버 효과 */
+.pet-svg:hover {
+  transform: scale(1.05);
+  cursor: pointer;
+}
+
+/* 눈 깜빡임 */
+.eyes:not(.sleeping) {
+  animation: blink 4s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 95%, 100% { opacity: 1; }
+  97.5% { opacity: 0; }
+}
+
+/* 기쁨 표현 */
+.pet-svg.state-happy .face {
+  animation: happy-face 0.5s ease-in-out;
+}
+
+@keyframes happy-face {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}

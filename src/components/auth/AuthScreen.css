@@ -1,0 +1,222 @@
+/* ===== 인증 화면 스타일 ===== */
+
+.auth-screen {
+  width: 100%;
+  height: 100%;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  padding: 20px;
+}
+
+.auth-container {
+  width: 100%;
+  max-width: 400px;
+  background: white;
+  border-radius: var(--radius-xl);
+  padding: 30px;
+  box-shadow: var(--shadow-lg);
+  animation: fadeIn 0.5s ease;
+}
+
+/* 로고 */
+.auth-logo {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.logo-emoji {
+  font-size: 60px;
+  display: block;
+  animation: float 3s ease-in-out infinite;
+}
+
+.auth-logo h1 {
+  margin: 10px 0 5px 0;
+  font-size: 28px;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.auth-logo p {
+  margin: 0;
+  font-size: 14px;
+  color: #666;
+}
+
+/* 폼 */
+.auth-form {
+  margin-bottom: 20px;
+}
+
+.auth-form h2 {
+  text-align: center;
+  margin: 0 0 20px 0;
+  font-size: 22px;
+  color: #333;
+}
+
+.error-message {
+  background: #FFEBEE;
+  color: #C62828;
+  padding: 10px 15px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 5px;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 12px 15px;
+  font-size: 14px;
+  border: 2px solid #E0E0E0;
+  border-radius: var(--radius-md);
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: 'Nunito', sans-serif;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(255, 107, 157, 0.2);
+}
+
+.form-group input::placeholder {
+  color: #BDBDBD;
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  color: white;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  margin-top: 10px;
+}
+
+.submit-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.submit-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* 모드 전환 */
+.auth-switch {
+  text-align: center;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.auth-switch p {
+  margin: 0;
+  font-size: 13px;
+  color: #666;
+}
+
+.auth-switch button {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-weight: 700;
+  cursor: pointer;
+  margin-left: 5px;
+}
+
+.auth-switch button:hover {
+  text-decoration: underline;
+}
+
+/* 게스트 모드 */
+.guest-mode {
+  text-align: center;
+  margin-top: 15px;
+}
+
+.guest-mode p {
+  margin: 0 0 10px 0;
+  font-size: 12px;
+  color: #999;
+}
+
+.guest-btn {
+  width: 100%;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #666;
+  background: #F5F5F5;
+  border: 2px dashed #DDD;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.guest-btn:hover {
+  background: #EEEEEE;
+  border-color: #CCC;
+}
+
+.guest-notice {
+  display: block;
+  margin-top: 8px;
+  font-size: 11px;
+  color: #999;
+}
+
+/* 애니메이션 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* 반응형 */
+@media (max-width: 440px) {
+  .auth-container {
+    padding: 20px;
+  }
+  
+  .logo-emoji {
+    font-size: 50px;
+  }
+  
+  .auth-logo h1 {
+    font-size: 24px;
+  }
+}

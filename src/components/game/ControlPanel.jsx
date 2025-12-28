@@ -1,0 +1,712 @@
+import React, { useState } from 'react';
+import { useGame } from '../../context/GameContext';
+import StatBar from '../ui/StatBar';
+import ActionButton from '../ui/ActionButton';
+import SettingsModal from '../settings/SettingsModal';
+import './ControlPanel.css';
+
+const ControlPanel = () => {
+  const { 
+    state, actions, getSelectedPet, getClickCoins, 
+    getUpgradeCost, getFoodPrice, getFoodUpgradeCost,
+    getJobCost, getJobEarnPerMinute, JOB_TYPES 
+  } = useGame();
+  const [activeTab, setActiveTab] = useState('actions');
+  const [showAddPetModal, setShowAddPetModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+
+  const selectedPet = getSelectedPet();
+
+  // 펫별 놀이 버튼 라벨
+  const getPlayButtonInfo = (petType) => {
+    switch (petType) {
+      case 'dog':
+        return { icon: '🚶', label: '산책', activity: 'walking' };
+      case 'cat':
+        return { icon: '🧶', label: '리본', activity: 'ribbon' };
+      case 'hamster':
+        return { icon: '🎡', label: '챗바퀴', activity: 'wheel' };
+      default:
+        return { icon: '🎾', label: '놀기', activity: 'playing' };
+    }
+  };
+
+  const handleFeed = (foodType) => {
+    if (!selectedPet) return;
+    if (selectedPet.state === 'sleep') {
+      actions.notify('펫이 자고 있어요! 💤', 'warning');
+      return;
+    }
+    const foodItem = state.inventory.food[foodType];
+    if (!foodItem || foodItem.count <= 0) {
+      actions.notify(`${foodType}이(가) 없어요! 상점에서 구매하세요.`, 'warning');
+      return;
+    }
+    
+    if (selectedPet.growth.level > foodItem.level) {
+      const diff = selectedPet.growth.level - foodItem.level;
+      actions.notify(`⚠️ 음식 레벨이 낮아 효과가 ${Math.pow(2, diff)}배 감소해요!`, 'warning');
+    }
+    
+    actions.feedPet(selectedPet.id, foodType);
+    actions.notify(`${selectedPet.name}에게 밥을 줬어요! 🍖`, 'success');
+  };
+
+  const handlePlay = () => {
+    if (!selectedPet) return;
+    if (selectedPet.state === 'sleep') {
+      actions.notify('펫이 자고 있어요! 💤', 'warning');
+      return;
+    }
+    if (selectedPet.stats.energy < 20) {
+      actions.notify('에너지가 부족해요! 💤', 'warning');
+      return;
+    }
+    if (selectedPet.specialActivity) {
+      actions.notify('이미 놀고 있어요! ⭐', 'info');
+      return;
+    }
+    
+    const playInfo = getPlayButtonInfo(selectedPet.type);
+    actions.playWithPet(selectedPet.id, playInfo.activity);
+    actions.notify(`${selectedPet.name}가 ${playInfo.label}을 시작해요! 🎉`, 'success');
+  };
+
+  const handleClean = () => {
+    if (!selectedPet) return;
+    if (selectedPet.poopCount === 0) {
+      actions.notify('이미 깨끗해요! ✨', 'info');
+      return;
+    }
+    actions.cleanPet(selectedPet.id);
+    actions.notify('깨끗해졌어요! 🧹', 'success');
+  };
+
+  const handleHeal = () => {
+    if (!selectedPet) return;
+    if (!selectedPet.isSick) {
+      actions.notify('펫이 아프지 않아요! 😊', 'info');
+      return;
+    }
+    const pillItem = state.inventory.medicine.pill;
+    if (!pillItem || pillItem.count <= 0) {
+      actions.notify('약이 없어요! 상점에서 구매하세요.', 'warning');
+      return;
+    }
+    actions.healPet(selectedPet.id);
+    actions.notify(`${selectedPet.name}가 건강해졌어요! 💊`, 'success');
+  };
+
+  const handleSleep = () => {
+    if (!selectedPet) return;
+    if (selectedPet.state === 'sleep') {
+      actions.wakePet(selectedPet.id);
+      actions.notify(`${selectedPet.name}가 일어났어요! ☀️`, 'info');
+    } else {
+      actions.sleepPet(selectedPet.id);
+      actions.notify(`${selectedPet.name}가 잠들었어요! 💤`, 'info');
+    }
+  };
+
+  const handleAddPet = (type) => {
+    if (state.pets.length >= 5) {
+      actions.notify('최대 5마리까지만 키울 수 있어요!', 'warning');
+      return;
+    }
+    actions.addPet(type);
+    setShowAddPetModal(false);
+    actions.notify('새 펫이 왔어요! 🎉', 'success');
+  };
+
+  const handleUpgrade = (upgradeType) => {
+    const cost = getUpgradeCost(upgradeType);
+    const upgrade = state.upgrades[upgradeType];
+    
+    if (upgrade.level >= upgrade.maxLevel) {
+      actions.notify('이미 최대 레벨이에요! 🌟', 'info');
+      return;
+    }
+    if (state.coins < cost) {
+      actions.notify('코인이 부족해요! 💰', 'warning');
+      return;
+    }
+    
+    actions.upgrade(upgradeType);
+    actions.notify(`강화 성공! +${upgrade.coinPerClick} 코인/클릭 🎉`, 'success');
+  };
+
+  const handleBuyItem = (itemType, itemName) => {
+    const price = getFoodPrice(itemType, itemName);
+    if (state.coins < price) {
+      actions.notify('코인이 부족해요! 💰', 'warning');
+      return;
+    }
+    actions.buyItem(itemType, itemName);
+    actions.notify(`${itemName}을(를) 구매했어요! 🛒`, 'success');
+  };
+
+  const handleUpgradeFood = (itemType, itemName) => {
+    const cost = getFoodUpgradeCost(itemType, itemName);
+    if (state.coins < cost) {
+      actions.notify('코인이 부족해요! 💰', 'warning');
+      return;
+    }
+    actions.upgradeFood(itemType, itemName);
+    actions.notify(`${itemName} 레벨업! 📈`, 'success');
+  };
+
+  // 알바 잠금해제
+  const handleUnlockJob = (jobType) => {
+    if (!selectedPet) return;
+    const cost = getJobCost(jobType, selectedPet.id);
+    if (state.coins < cost) {
+      actions.notify('코인이 부족해요! 💰', 'warning');
+      return;
+    }
+    actions.unlockJob(selectedPet.id, jobType);
+    actions.notify(`${JOB_TYPES[jobType].name} 알바 해금! 🎉`, 'success');
+  };
+
+  // 알바 업그레이드
+  const handleUpgradeJob = (jobType) => {
+    if (!selectedPet) return;
+    const cost = getJobCost(jobType, selectedPet.id);
+    if (state.coins < cost) {
+      actions.notify('코인이 부족해요! 💰', 'warning');
+      return;
+    }
+    actions.upgradeJob(selectedPet.id, jobType);
+    actions.notify(`${JOB_TYPES[jobType].name} 레벨업! 📈`, 'success');
+  };
+
+  // 알바 시작
+  const handleStartJob = (jobType) => {
+    if (!selectedPet) return;
+    if (selectedPet.state === 'sleep') {
+      actions.notify('⚠️ 펫이 깨어있을 때만 알바를 할 수 있어요!', 'warning');
+      return;
+    }
+    if (!selectedPet.jobs[jobType]?.unlocked) {
+      actions.notify('⚠️ 먼저 알바를 해금하세요!', 'warning');
+      return;
+    }
+    if (selectedPet.currentJob) {
+      actions.notify('⚠️ 이미 알바 중이에요!', 'warning');
+      return;
+    }
+    actions.startJob(selectedPet.id, jobType);
+    actions.notify(`${JOB_TYPES[jobType].name} 알바 시작! 💼`, 'success');
+  };
+
+  // 알바 종료
+  const handleEndJob = () => {
+    if (!selectedPet) return;
+    actions.endJob(selectedPet.id);
+    actions.notify('알바 종료! 💰', 'success');
+  };
+
+  const tabs = [
+    { id: 'actions', label: '행동', icon: '🎮' },
+    { id: 'stats', label: '상태', icon: '📊' },
+    { id: 'upgrade', label: '강화', icon: '⚡' },
+    { id: 'shop', label: '상점', icon: '🛒' },
+    { id: 'job', label: '알바', icon: '💼' },
+    { id: 'settings', label: '설정', icon: '⚙️' }
+  ];
+
+  const playInfo = selectedPet ? getPlayButtonInfo(selectedPet.type) : null;
+
+  return (
+    <div className="control-panel">
+      {/* 탭 네비게이션 */}
+      <div className="tabs">
+        {tabs.map(tab => (
+          <button
+            key={tab.id}
+            className={`tab ${activeTab === tab.id ? 'active' : ''}`}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            <span className="tab-icon">{tab.icon}</span>
+            <span className="tab-label">{tab.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* 탭 컨텐츠 */}
+      <div className="tab-content">
+        {/* 행동 탭 */}
+        {activeTab === 'actions' && (
+          <div className="actions-tab">
+            {selectedPet ? (
+              <>
+                <div className="selected-pet-info">
+                  <span className="pet-emoji">
+                    {selectedPet.type === 'dog' ? '🐶' : selectedPet.type === 'cat' ? '🐱' : '🐹'}
+                  </span>
+                  <span className="pet-name">{selectedPet.name}</span>
+                  <span className="pet-state">
+                    {selectedPet.state === 'sleep' ? '💤' : 
+                     selectedPet.state === 'eating' ? '🍖' :
+                     selectedPet.currentJob ? '💼' :
+                     selectedPet.specialActivity ? '🎮' : ''}
+                  </span>
+                  <span className="click-coins">클릭당 +{getClickCoins()}🪙</span>
+                  {selectedPet.state === 'sleep' && (
+                    <span className="sleep-warning">😴 수면 중</span>
+                  )}
+                </div>
+                
+                <div className="action-buttons">
+                  <ActionButton 
+                    icon="🍎" 
+                    label={`사과 (${state.inventory.food.apple?.count || 0})`}
+                    onClick={() => handleFeed('apple')}
+                    variant="success"
+                    size="medium"
+                    disabled={selectedPet.state === 'sleep'}
+                  />
+                  <ActionButton 
+                    icon="🍖" 
+                    label={`고기 (${state.inventory.food.meat?.count || 0})`}
+                    onClick={() => handleFeed('meat')}
+                    variant="warning"
+                    size="medium"
+                    disabled={selectedPet.state === 'sleep'}
+                  />
+                  <ActionButton 
+                    icon={playInfo?.icon || '🎾'} 
+                    label={playInfo?.label || '놀기'}
+                    onClick={handlePlay}
+                    variant="primary"
+                    size="medium"
+                    disabled={selectedPet.state === 'sleep' || selectedPet.specialActivity}
+                  />
+                  <ActionButton 
+                    icon="🧹" 
+                    label="청소" 
+                    onClick={handleClean}
+                    variant="secondary"
+                    size="medium"
+                  />
+                  <ActionButton 
+                    icon="💊" 
+                    label={`치료 (${state.inventory.medicine.pill?.count || 0})`}
+                    onClick={handleHeal}
+                    variant="danger"
+                    size="medium"
+                    disabled={!selectedPet.isSick}
+                  />
+                  <ActionButton 
+                    icon={selectedPet.state === 'sleep' ? '☀️' : '💤'} 
+                    label={selectedPet.state === 'sleep' ? '깨우기' : '재우기'}
+                    onClick={handleSleep}
+                    variant="secondary"
+                    size="medium"
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="no-selection">
+                <p>펫을 선택해주세요!</p>
+                <p className="sub">펫을 클릭하면 코인을 얻어요 🪙</p>
+              </div>
+            )}
+            
+            <button className="add-pet-btn" onClick={() => setShowAddPetModal(true)}>
+              ➕ 새 펫 입양하기
+            </button>
+          </div>
+        )}
+
+        {/* 상태 탭 */}
+        {activeTab === 'stats' && selectedPet && (
+          <div className="stats-tab">
+            <div className="stats-header">
+              <span className="pet-emoji-large">
+                {selectedPet.type === 'dog' ? '🐶' : selectedPet.type === 'cat' ? '🐱' : '🐹'}
+              </span>
+              <div className="pet-info">
+                <h3>{selectedPet.name}</h3>
+                <p>Lv.{selectedPet.growth.level} • {selectedPet.growth.stage}</p>
+              </div>
+            </div>
+            
+            <div className="stats-grid">
+              <StatBar 
+                label="배부름" 
+                value={selectedPet.stats.hunger} 
+                icon="🍖" 
+                color="var(--success)"
+              />
+              <StatBar 
+                label="행복" 
+                value={selectedPet.stats.happiness} 
+                icon="❤️" 
+                color="var(--primary)"
+              />
+              <StatBar 
+                label="건강" 
+                value={selectedPet.stats.health} 
+                icon="💚" 
+                color="#4CAF50"
+              />
+              <StatBar 
+                label="에너지" 
+                value={selectedPet.stats.energy} 
+                icon="⚡" 
+                color="var(--warning)"
+              />
+              <StatBar 
+                label="청결" 
+                value={selectedPet.stats.cleanliness} 
+                icon="✨" 
+                color="var(--secondary)"
+              />
+            </div>
+
+            <div className="exp-section">
+              <h4>성장</h4>
+              <StatBar 
+                label="경험치" 
+                value={selectedPet.growth.exp} 
+                maxValue={getExpRequired(selectedPet.growth.stage)}
+                icon="⭐" 
+                color="#FFD700"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* 강화 탭 */}
+        {activeTab === 'upgrade' && (
+          <div className="upgrade-tab">
+            <h3>⚡ 클릭 강화</h3>
+            <p className="upgrade-info">현재 클릭당 +{getClickCoins()} 코인</p>
+            
+            <div className="upgrade-list">
+              {/* 손톱 */}
+              <div className="upgrade-item">
+                <div className="upgrade-icon">💅</div>
+                <div className="upgrade-details">
+                  <h4>손톱 강화</h4>
+                  <p>클릭당 +1 코인</p>
+                  <p className="upgrade-level">
+                    Lv.{state.upgrades.fingernail.level} / {state.upgrades.fingernail.maxLevel}
+                  </p>
+                </div>
+                <button 
+                  className="upgrade-btn"
+                  onClick={() => handleUpgrade('fingernail')}
+                  disabled={state.upgrades.fingernail.level >= state.upgrades.fingernail.maxLevel}
+                >
+                  {state.upgrades.fingernail.level >= state.upgrades.fingernail.maxLevel 
+                    ? 'MAX' 
+                    : `🪙 ${getUpgradeCost('fingernail').toLocaleString()}`}
+                </button>
+              </div>
+
+              {/* 발톱 */}
+              <div className="upgrade-item">
+                <div className="upgrade-icon">🦶</div>
+                <div className="upgrade-details">
+                  <h4>발톱 강화</h4>
+                  <p>클릭당 +5 코인</p>
+                  <p className="upgrade-level">
+                    Lv.{state.upgrades.toenail.level} / {state.upgrades.toenail.maxLevel}
+                  </p>
+                </div>
+                <button 
+                  className="upgrade-btn"
+                  onClick={() => handleUpgrade('toenail')}
+                  disabled={state.upgrades.toenail.level >= state.upgrades.toenail.maxLevel}
+                >
+                  {state.upgrades.toenail.level >= state.upgrades.toenail.maxLevel 
+                    ? 'MAX' 
+                    : `🪙 ${getUpgradeCost('toenail').toLocaleString()}`}
+                </button>
+              </div>
+
+              {/* 전신 */}
+              <div className="upgrade-item">
+                <div className="upgrade-icon">✨</div>
+                <div className="upgrade-details">
+                  <h4>전신 강화</h4>
+                  <p>클릭당 +20 코인</p>
+                  <p className="upgrade-level">
+                    Lv.{state.upgrades.fullbody.level} / {state.upgrades.fullbody.maxLevel}
+                  </p>
+                </div>
+                <button 
+                  className="upgrade-btn"
+                  onClick={() => handleUpgrade('fullbody')}
+                  disabled={state.upgrades.fullbody.level >= state.upgrades.fullbody.maxLevel}
+                >
+                  {state.upgrades.fullbody.level >= state.upgrades.fullbody.maxLevel 
+                    ? 'MAX' 
+                    : `🪙 ${getUpgradeCost('fullbody').toLocaleString()}`}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 상점 탭 */}
+        {activeTab === 'shop' && (
+          <div className="shop-tab">
+            <h3>🛒 상점</h3>
+            
+            <div className="shop-section">
+              <h4>🍎 음식</h4>
+              <div className="shop-items">
+                {['apple', 'meat', 'cookie'].map(foodName => {
+                  const food = state.inventory.food[foodName];
+                  const price = getFoodPrice('food', foodName);
+                  const upgradeCost = getFoodUpgradeCost('food', foodName);
+                  const icons = { apple: '🍎', meat: '🍖', cookie: '🍪' };
+                  const names = { apple: '사과', meat: '고기', cookie: '쿠키' };
+                  
+                  return (
+                    <div key={foodName} className="shop-item-row">
+                      <div className="shop-item" onClick={() => handleBuyItem('food', foodName)}>
+                        <span className="item-icon">{icons[foodName]}</span>
+                        <span className="item-name">{names[foodName]}</span>
+                        <span className="item-level">Lv.{food?.level || 1}</span>
+                        <span className="item-price">🪙 {price}</span>
+                        <span className="item-owned">x{food?.count || 0}</span>
+                      </div>
+                      <button 
+                        className="level-up-btn"
+                        onClick={() => handleUpgradeFood('food', foodName)}
+                      >
+                        📈 {upgradeCost.toLocaleString()}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="shop-section">
+              <h4>💊 약품</h4>
+              <div className="shop-items">
+                {(() => {
+                  const pill = state.inventory.medicine.pill;
+                  const price = getFoodPrice('medicine', 'pill');
+                  const upgradeCost = getFoodUpgradeCost('medicine', 'pill');
+                  
+                  return (
+                    <div className="shop-item-row">
+                      <div className="shop-item" onClick={() => handleBuyItem('medicine', 'pill')}>
+                        <span className="item-icon">💊</span>
+                        <span className="item-name">알약</span>
+                        <span className="item-level">Lv.{pill?.level || 1}</span>
+                        <span className="item-price">🪙 {price}</span>
+                        <span className="item-owned">x{pill?.count || 0}</span>
+                      </div>
+                      <button 
+                        className="level-up-btn"
+                        onClick={() => handleUpgradeFood('medicine', 'pill')}
+                      >
+                        📈 {upgradeCost.toLocaleString()}
+                      </button>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 알바 탭 - 새로운 펫별 알바 시스템 */}
+        {activeTab === 'job' && (
+          <div className="job-tab">
+            <h3>💼 알바</h3>
+            
+            {!selectedPet ? (
+              <p className="job-notice">⚠️ 펫을 먼저 선택해주세요!</p>
+            ) : selectedPet.state === 'sleep' ? (
+              <p className="job-notice">😴 펫이 자고 있어요. 깨어있을 때만 알바할 수 있어요!</p>
+            ) : (
+              <>
+                <div className="job-pet-info">
+                  <span className="pet-emoji">
+                    {selectedPet.type === 'dog' ? '🐶' : selectedPet.type === 'cat' ? '🐱' : '🐹'}
+                  </span>
+                  <span>{selectedPet.name}의 알바</span>
+                  {selectedPet.currentJob && (
+                    <span className="working-badge">💼 알바 중</span>
+                  )}
+                </div>
+
+                {selectedPet.currentJob ? (
+                  <div className="job-active">
+                    <div className="job-status">
+                      <span className="job-emoji">{JOB_TYPES[selectedPet.currentJob]?.icon}</span>
+                      <div className="job-info">
+                        <h4>{JOB_TYPES[selectedPet.currentJob]?.name} 진행 중...</h4>
+                        <p>수입: {getJobEarnPerMinute(selectedPet.currentJob, selectedPet.id)} 코인/분</p>
+                        <p className="total-earned">
+                          이번 알바 수입: 🪙 {(selectedPet.jobEarned || 0).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                    <button className="end-job-btn" onClick={handleEndJob}>
+                      알바 종료
+                    </button>
+                  </div>
+                ) : (
+                  <div className="job-list">
+                    {Object.entries(JOB_TYPES).map(([jobType, jobInfo]) => {
+                      const petJob = selectedPet.jobs[jobType];
+                      const isUnlocked = petJob?.unlocked;
+                      const level = petJob?.level || 0;
+                      const cost = getJobCost(jobType, selectedPet.id);
+                      const earnPerMin = getJobEarnPerMinute(jobType, selectedPet.id);
+                      
+                      return (
+                        <div key={jobType} className="job-item-new">
+                          <div className="job-header">
+                            <span className="job-emoji">{jobInfo.icon}</span>
+                            <div className="job-details">
+                              <h4>{jobInfo.name}</h4>
+                              {isUnlocked ? (
+                                <p>Lv.{level} • {earnPerMin} 코인/분</p>
+                              ) : (
+                                <p className="locked">🔒 잠금됨</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="job-actions">
+                            {!isUnlocked ? (
+                              <button 
+                                className="unlock-btn"
+                                onClick={() => handleUnlockJob(jobType)}
+                              >
+                                🔓 해금 (🪙{jobInfo.baseCost})
+                              </button>
+                            ) : (
+                              <>
+                                <button 
+                                  className="start-btn"
+                                  onClick={() => handleStartJob(jobType)}
+                                >
+                                  시작
+                                </button>
+                                <button 
+                                  className="upgrade-job-btn"
+                                  onClick={() => handleUpgradeJob(jobType)}
+                                >
+                                  📈 {cost.toLocaleString()}
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* 설정 탭 */}
+        {activeTab === 'settings' && (
+          <div className="settings-tab">
+            <h3>⚙️ 설정</h3>
+            
+            <div className="setting-item">
+              <span>🎨 펫 설정</span>
+              <button onClick={() => setShowSettingsModal(true)}>
+                이름/색상 변경
+              </button>
+            </div>
+            
+            <div className="setting-item">
+              <span>💾 게임 저장</span>
+              <button onClick={() => {
+                actions.saveGame();
+                actions.notify('게임이 저장되었어요! 💾', 'success');
+              }}>저장</button>
+            </div>
+            
+            <div className="setting-item warning-box">
+              <div>
+                <span>⚠️ 수면 시스템 안내</span>
+                <p className="warning-text">
+                  • 수면 중에는 클릭, 알바, 상태변화가 모두 정지해요<br/>
+                  • 깨어있을 때만 활동할 수 있어요<br/>
+                  • 오프라인 시 재우지 않으면 상태가 감소해요
+                </p>
+              </div>
+            </div>
+            
+            <div className="setting-item danger">
+              <span>🗑️ 게임 초기화</span>
+              <button onClick={() => {
+                if (window.confirm('정말 초기화하시겠어요? 모든 데이터가 삭제됩니다.')) {
+                  actions.resetGame();
+                }
+              }}>초기화</button>
+            </div>
+
+            <div className="game-info">
+              <p>🐾 다마고치 v2.0</p>
+              <p>React + Vite</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 새 펫 추가 모달 */}
+      {showAddPetModal && (
+        <div className="modal-overlay" onClick={() => setShowAddPetModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h3>🐾 새 펫 입양하기</h3>
+            <div className="pet-choices">
+              <button className="pet-choice" onClick={() => handleAddPet('dog')}>
+                <span className="choice-emoji">🐶</span>
+                <span className="choice-name">강아지</span>
+                <span className="choice-skill">🚶 산책</span>
+              </button>
+              <button className="pet-choice" onClick={() => handleAddPet('cat')}>
+                <span className="choice-emoji">🐱</span>
+                <span className="choice-name">고양이</span>
+                <span className="choice-skill">🧶 리본</span>
+              </button>
+              <button className="pet-choice" onClick={() => handleAddPet('hamster')}>
+                <span className="choice-emoji">🐹</span>
+                <span className="choice-name">햄스터</span>
+                <span className="choice-skill">🎡 챗바퀴</span>
+              </button>
+            </div>
+            <button className="close-modal" onClick={() => setShowAddPetModal(false)}>
+              취소
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 펫 설정 모달 */}
+      <SettingsModal 
+        isOpen={showSettingsModal} 
+        onClose={() => setShowSettingsModal(false)} 
+      />
+    </div>
+  );
+};
+
+// 헬퍼 함수
+const getExpRequired = (stage) => {
+  const requirements = {
+    egg: 10,
+    baby: 50,
+    child: 150,
+    teen: 300,
+    adult: 500
+  };
+  return requirements[stage] || 100;
+};
+
+export default ControlPanel;

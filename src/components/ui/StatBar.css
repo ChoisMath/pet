@@ -1,0 +1,101 @@
+/* ===== 스탯 바 스타일 ===== */
+
+.stat-bar-container {
+  width: 100%;
+}
+
+.stat-bar-container.size-small {
+  --bar-height: 6px;
+  --font-size: 10px;
+}
+
+.stat-bar-container.size-medium {
+  --bar-height: 10px;
+  --font-size: 12px;
+}
+
+.stat-bar-container.size-large {
+  --bar-height: 14px;
+  --font-size: 14px;
+}
+
+.stat-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-size: var(--font-size);
+}
+
+.stat-icon {
+  font-size: calc(var(--font-size) + 2px);
+}
+
+.stat-name {
+  font-weight: 600;
+  color: #555;
+  flex: 1;
+}
+
+.stat-value {
+  font-weight: 700;
+  color: var(--primary);
+  min-width: 30px;
+  text-align: right;
+}
+
+.stat-bar-track {
+  width: 100%;
+  height: var(--bar-height);
+  background: #E0E0E0;
+  border-radius: calc(var(--bar-height) / 2);
+  overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.stat-bar-fill {
+  height: 100%;
+  border-radius: calc(var(--bar-height) / 2);
+  transition: width 0.3s ease, background-color 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-bar-fill.danger {
+  animation: pulse-danger 0.5s ease-in-out infinite;
+}
+
+.stat-bar-fill.warning {
+  animation: pulse-warning 1s ease-in-out infinite;
+}
+
+@keyframes pulse-danger {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes pulse-warning {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+/* 반짝이 효과 */
+.stat-bar-shine {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
+  animation: shine 2s ease-in-out infinite;
+}
+
+@keyframes shine {
+  0% { left: -100%; }
+  50%, 100% { left: 200%; }
+}

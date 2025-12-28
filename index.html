@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐾</text></svg>" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#FF6B9D" />
+    <meta name="description" content="귀여운 펫을 키우는 다마고치 게임! 강아지, 고양이, 햄스터를 돌봐주세요." />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>🐾 다마고치 - 나만의 펫 키우기</title>
+    <style>
+      /* 로딩 스크린 */
+      .loading-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #FF6B9D 0%, #7C4DFF 100%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        transition: opacity 0.5s ease;
+      }
+      .loading-screen.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+      .loading-emoji {
+        font-size: 80px;
+        animation: bounce 0.6s ease-in-out infinite;
+      }
+      .loading-text {
+        color: white;
+        font-family: sans-serif;
+        font-size: 18px;
+        margin-top: 20px;
+        animation: pulse 1s ease-in-out infinite;
+      }
+      @keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-20px); }
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 로딩 스크린 -->
+    <div id="loading" class="loading-screen">
+      <div class="loading-emoji">🐾</div>
+      <div class="loading-text">펫들을 불러오는 중...</div>
+    </div>
+
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+    <script>
+      // 로딩 스크린 숨기기
+      window.addEventListener('load', () => {
+        setTimeout(() => {
+          document.getElementById('loading').classList.add('hidden');
+        }, 500);
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,76 @@
+/* ===== 알림 스타일 ===== */
+
+.notifications-container {
+  position: fixed;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 1000;
+  pointer-events: none;
+  max-width: 90%;
+}
+
+.notification {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  animation: slideDown 0.3s ease, fadeOut 0.3s ease 2.5s forwards;
+  pointer-events: auto;
+  cursor: pointer;
+  min-width: 200px;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+.notification-success {
+  border-left: 4px solid var(--success);
+}
+
+.notification-warning {
+  border-left: 4px solid var(--warning);
+}
+
+.notification-error {
+  border-left: 4px solid var(--danger);
+}
+
+.notification-info {
+  border-left: 4px solid var(--secondary);
+}
+
+.notification-icon {
+  font-size: 18px;
+}
+
+.notification-message {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.notification:hover {
+  transform: scale(1.02);
+}

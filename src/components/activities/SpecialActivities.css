@@ -1,0 +1,361 @@
+/* ===== 특수 활동 애니메이션 스타일 ===== */
+
+.activity-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+/* ===== 산책 (Walking) ===== */
+.walking-activity {
+  background: linear-gradient(180deg, #87CEEB 0%, #98D8C8 70%, #7CB342 100%);
+}
+
+.walking-scene {
+  width: 100%;
+  max-width: 400px;
+  height: 200px;
+  position: relative;
+  overflow: hidden;
+  background: transparent;
+}
+
+.walking-bg {
+  position: absolute;
+  bottom: 40px;
+  left: 0;
+  width: 1000px;
+  height: 100px;
+  display: flex;
+  align-items: flex-end;
+  transition: transform 0.1s linear;
+}
+
+.scene-item {
+  position: absolute;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.building-emoji {
+  font-size: 50px;
+}
+
+.mountain .building-emoji {
+  font-size: 70px;
+}
+
+.house .label {
+  font-size: 12px;
+  font-weight: 700;
+  color: white;
+  background: var(--primary);
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-top: 5px;
+}
+
+.walking-dog {
+  position: absolute;
+  bottom: 45px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 40px;
+  animation: dog-walk 0.3s steps(2) infinite;
+}
+
+@keyframes dog-walk {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-5px); }
+}
+
+.ground-line {
+  position: absolute;
+  bottom: 30px;
+  left: 0;
+  right: 0;
+  height: 10px;
+  background: linear-gradient(90deg, #8D6E63, #A1887F, #8D6E63);
+  border-radius: 5px;
+}
+
+/* ===== 리본/털실 (Ribbon) ===== */
+.ribbon-activity {
+  background: linear-gradient(180deg, #FFE4E1 0%, #FFF0F5 100%);
+}
+
+.ribbon-scene {
+  width: 100%;
+  max-width: 350px;
+  height: 150px;
+  position: relative;
+}
+
+.playing-cat {
+  position: absolute;
+  left: 20px;
+  bottom: 20px;
+  font-size: 50px;
+}
+
+.cat-emoji.throwing {
+  animation: cat-throw 0.5s ease-out;
+}
+
+.cat-emoji.pulling {
+  animation: cat-pull 0.3s ease-in-out infinite;
+}
+
+@keyframes cat-throw {
+  0% { transform: rotate(0deg); }
+  50% { transform: rotate(-20deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@keyframes cat-pull {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(5px); }
+}
+
+.cat-paw {
+  position: absolute;
+  right: -20px;
+  top: 10px;
+  font-size: 20px;
+  animation: paw-grab 0.3s ease-in-out infinite;
+}
+
+@keyframes paw-grab {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(15deg); }
+}
+
+.yarn-string {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 300px;
+  height: 100px;
+  pointer-events: none;
+}
+
+.yarn-ball {
+  position: absolute;
+  bottom: 30px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FF6B6B, #EE5A5A);
+  box-shadow: inset -5px -5px 15px rgba(0,0,0,0.2);
+  transition: all 0.1s ease;
+}
+
+.yarn-ball.unwinding {
+  animation: yarn-roll 0.5s linear infinite;
+}
+
+.yarn-ball.winding {
+  animation: yarn-roll-reverse 0.5s linear infinite;
+}
+
+@keyframes yarn-roll {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes yarn-roll-reverse {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
+.yarn-pattern {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 3px,
+    rgba(255,255,255,0.3) 3px,
+    rgba(255,255,255,0.3) 6px
+  );
+}
+
+.throw-effect {
+  position: absolute;
+  bottom: 50px;
+  font-size: 20px;
+  animation: throw-poof 0.5s ease-out;
+  opacity: 0.7;
+}
+
+@keyframes throw-poof {
+  0% { transform: scale(0.5); opacity: 1; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+/* ===== 챗바퀴 (Wheel) ===== */
+.wheel-activity {
+  background: linear-gradient(180deg, #FFE082 0%, #FFECB3 100%);
+}
+
+.wheel-scene {
+  width: 100%;
+  max-width: 300px;
+  height: 200px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hamster-wheel {
+  position: relative;
+  width: 150px;
+  height: 150px;
+}
+
+.wheel-outer {
+  width: 150px;
+  height: 150px;
+  border: 8px solid #FFD54F;
+  border-radius: 50%;
+  position: absolute;
+  box-shadow: 
+    inset 0 0 20px rgba(0,0,0,0.1),
+    0 5px 15px rgba(0,0,0,0.2);
+  transition: transform 0.05s linear;
+}
+
+.wheel-spoke {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 4px;
+  background: #FFD54F;
+  transform-origin: center;
+  transform: translateX(-50%) translateY(-50%);
+}
+
+.hamster-in-wheel {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -30%);
+  z-index: 10;
+}
+
+.hamster-emoji {
+  font-size: 40px;
+  display: block;
+}
+
+.hamster-emoji.running {
+  animation: hamster-run 0.3s steps(2) infinite;
+}
+
+@keyframes hamster-run {
+  0%, 100% { transform: translateY(0) scaleX(1); }
+  50% { transform: translateY(-3px) scaleX(0.95); }
+}
+
+.wheel-stand {
+  position: absolute;
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 40px;
+  background: linear-gradient(180deg, #8D6E63, #5D4037);
+  border-radius: 5px;
+}
+
+.speed-lines {
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.speed-line {
+  width: 30px;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #FF9800);
+  margin: 5px 0;
+  animation: speed-flash 0.3s ease-in-out infinite;
+}
+
+@keyframes speed-flash {
+  0%, 100% { opacity: 0.3; width: 20px; }
+  50% { opacity: 1; width: 40px; }
+}
+
+.sweat-drops {
+  position: absolute;
+  top: 30%;
+  right: 30%;
+  font-size: 20px;
+  animation: sweat-drop 0.5s ease-in-out infinite;
+}
+
+@keyframes sweat-drop {
+  0%, 100% { transform: translateY(0); opacity: 1; }
+  50% { transform: translateY(10px); opacity: 0.5; }
+}
+
+/* ===== 공통 진행 바 ===== */
+.progress-container {
+  margin-top: 30px;
+  width: 80%;
+  max-width: 300px;
+  text-align: center;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  border-radius: 6px;
+  transition: width 0.1s ease;
+}
+
+.progress-fill.ribbon-fill {
+  background: linear-gradient(90deg, #FF6B6B, #FF8A8A);
+}
+
+.progress-fill.wheel-fill {
+  background: linear-gradient(90deg, #FFD54F, #FFA000);
+}
+
+.progress-text {
+  display: block;
+  margin-top: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+/* 페이드인 애니메이션 */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

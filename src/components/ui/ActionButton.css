@@ -1,0 +1,185 @@
+/* ===== 액션 버튼 스타일 ===== */
+
+.action-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+/* 사이즈 변형 */
+.action-button.size-small {
+  padding: 8px 14px;
+  font-size: 12px;
+}
+
+.action-button.size-small .button-icon {
+  font-size: 14px;
+}
+
+.action-button.size-medium {
+  padding: 12px 20px;
+  font-size: 14px;
+}
+
+.action-button.size-medium .button-icon {
+  font-size: 18px;
+}
+
+.action-button.size-large {
+  padding: 16px 28px;
+  font-size: 16px;
+}
+
+.action-button.size-large .button-icon {
+  font-size: 22px;
+}
+
+/* 색상 변형 */
+.action-button.variant-primary {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: white;
+}
+
+.action-button.variant-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.action-button.variant-secondary {
+  background: linear-gradient(135deg, var(--secondary), #6200EA);
+  color: white;
+}
+
+.action-button.variant-secondary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #6200EA, var(--secondary));
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.action-button.variant-success {
+  background: linear-gradient(135deg, var(--success), #388E3C);
+  color: white;
+}
+
+.action-button.variant-success:hover:not(:disabled) {
+  background: linear-gradient(135deg, #388E3C, var(--success));
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.action-button.variant-warning {
+  background: linear-gradient(135deg, var(--warning), #F57C00);
+  color: white;
+}
+
+.action-button.variant-warning:hover:not(:disabled) {
+  background: linear-gradient(135deg, #F57C00, var(--warning));
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.action-button.variant-danger {
+  background: linear-gradient(135deg, var(--danger), #D32F2F);
+  color: white;
+}
+
+.action-button.variant-danger:hover:not(:disabled) {
+  background: linear-gradient(135deg, #D32F2F, var(--danger));
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* 활성화 효과 */
+.action-button:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: none;
+}
+
+/* 비활성화 */
+.action-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(40%);
+}
+
+/* 쿨다운 오버레이 */
+.cooldown-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: inherit;
+}
+
+.cooldown-time {
+  color: white;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+/* 아이콘 */
+.button-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 반짝이 효과 */
+.action-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.action-button:hover::before {
+  left: 100%;
+}
+
+/* 물결 효과 */
+.action-button::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, white 10%, transparent 10%);
+  background-repeat: no-repeat;
+  background-position: 50%;
+  transform: scale(10, 10);
+  opacity: 0;
+  transition: transform 0.5s, opacity 0.5s;
+}
+
+.action-button:active::after {
+  transform: scale(0, 0);
+  opacity: 0.3;
+  transition: 0s;
+}
