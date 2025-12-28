@@ -316,7 +316,7 @@ app.get("/api/game/load", authenticateToken, async (req, res) => {
     const user = userResult.rows[0];
 
     res.json({
-      coins: user?.coins || 100,
+      coins: user?.coins !== undefined && user?.coins !== null ? user.coins : 100,
       upgrades: user?.upgrades || {
         fingernail: { level: 0, maxLevel: 20, baseCost: 100, coinPerClick: 1 },
         toenail: { level: 0, maxLevel: 20, baseCost: 1000, coinPerClick: 5 },

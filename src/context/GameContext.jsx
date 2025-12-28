@@ -824,12 +824,37 @@ const gameReducer = (state, action) => {
         },
         currentJob: pet.currentJob || null,
         jobStartTime: pet.jobStartTime || null,
-        jobEarned: pet.jobEarned || 0
+        jobEarned: pet.jobEarned || 0,
+        // growth 데이터 안전성 확보
+        growth: {
+          ...pet.growth,
+          exp: Number.isNaN(Number(pet.growth?.exp)) ? 0 : Number(pet.growth?.exp)
+        }
       }));
+      
+      // 코인 데이터 안전성 확보 (NaN 체크)
+      const loadedCoins = action.payload.coins !== undefined && !Number.isNaN(Number(action.payload.coins))
+        ? Number(action.payload.coins)
+        : initialState.coins;
+
+      // 업그레이드 데이터 병합 (누락된 항목 복구)
+      const loadedUpgrades = { ...initialState.upgrades };
+      if (action.payload.upgrades) {
+        Object.keys(initialState.upgrades).forEach(key => {
+          if (action.payload.upgrades[key]) {
+             loadedUpgrades[key] = {
+               ...initialState.upgrades[key], // 기본 설정(비용 등) 유지
+               ...action.payload.upgrades[key] // 레벨 등 상태 덮어쓰기
+             };
+          }
+        });
+      }
       
       return {
         ...initialState,
         ...action.payload,
+        coins: loadedCoins,
+        upgrades: loadedUpgrades,
         pets: loadedPets,
         inventory: {
           food: {
