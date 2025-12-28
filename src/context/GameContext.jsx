@@ -970,6 +970,7 @@ const gameReducer = (state, action) => {
     }
 
     case ActionTypes.LOAD_GAME: {
+      // 펫 데이터 병합 & 오프라인 수면 계산
       const loadedPets = (action.payload.pets || []).map(pet => {
         const mappedPet = {
           ...pet,
@@ -992,13 +993,18 @@ const gameReducer = (state, action) => {
         if (mappedPet.state === 'sleep' && mappedPet.sleepStart) {
           const now = Date.now();
           const elapsedSeconds = (now - mappedPet.sleepStart) / 1000;
+          console.log(`[Offline Sleep] Pet ${mappedPet.name} slept for ${elapsedSeconds.toFixed(1)}s`);
+          
           if (elapsedSeconds > 0) {
               const energyGain = elapsedSeconds * (0.5 / 60); // 분당 0.5
+              const currentEnergy = mappedPet.stats.energy;
               
               if (mappedPet.energyAtSleepStart !== undefined) {
                 mappedPet.stats.energy = Math.min(100, mappedPet.energyAtSleepStart + energyGain);
+                console.log(`[Offline Sleep] Base: ${mappedPet.energyAtSleepStart}, Gain: ${energyGain.toFixed(2)} -> New: ${mappedPet.stats.energy}`);
               } else {
-                mappedPet.stats.energy = Math.min(100, mappedPet.stats.energy + energyGain);
+                mappedPet.stats.energy = Math.min(100, currentEnergy + energyGain);
+                console.log(`[Offline Sleep] Saved: ${currentEnergy}, Gain: ${energyGain.toFixed(2)} -> New: ${mappedPet.stats.energy}`);
               }
           }
         }
