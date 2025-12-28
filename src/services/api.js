@@ -79,6 +79,12 @@ export const saveGameData = async (gameState) => {
   });
 };
 
+export const resetGameData = async () => {
+  return apiRequest('/game/reset', {
+    method: 'POST'
+  });
+};
+
 // 로그인 상태 확인
 export const isLoggedIn = () => {
   return !!getToken();

@@ -287,6 +287,7 @@ app.get("/api/game/load", authenticateToken, async (req, res) => {
       id: pet.pet_id,
       type: pet.type,
       name: pet.name,
+      colorId: pet.color_id,
       createdAt: new Date(pet.created_at).getTime(),
       stats: pet.stats,
       growth: pet.growth,
@@ -379,8 +380,8 @@ app.post("/api/game/save", authenticateToken, async (req, res) => {
       for (const pet of pets) {
         await client.query(
           `
-          INSERT INTO pets (user_id, pet_id, type, name, stats, growth, state, mood, poop_count, is_sick, has_run_away, position, direction, jobs, last_updated)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, CURRENT_TIMESTAMP)
+          INSERT INTO pets (user_id, pet_id, type, name, stats, growth, state, mood, poop_count, is_sick, has_run_away, position, direction, jobs, color_id, last_updated)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, CURRENT_TIMESTAMP)
         `,
           [
             userId,
@@ -397,6 +398,7 @@ app.post("/api/game/save", authenticateToken, async (req, res) => {
             JSON.stringify(pet.position),
             pet.direction,
             JSON.stringify(pet.jobs || {}),
+            pet.colorId,
           ]
         );
       }

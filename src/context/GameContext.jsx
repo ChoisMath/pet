@@ -1448,12 +1448,27 @@ export const GameProvider = ({ children }) => {
       }
     },
     
-    resetGame: () => {
-      isResetting.current = true;
-      localStorage.removeItem('tamagotchi_save');
-      localStorage.removeItem('tamagotchi_guest');
-      sessionStorage.clear();
-      window.location.reload();
+    resetGame: async () => {
+      if (window.confirm("정말로 모든 게임 데이터를 삭제하고 초기화하시겠습니까?")) {
+        isResetting.current = true;
+        
+        // 서버 데이터 초기화 (로그인 시)
+        if (api.isLoggedIn()) {
+          try {
+            await api.resetGameData();
+          } catch (error) {
+            console.error('서버 초기화 실패:', error);
+            alert('서버 데이터 초기화 중 오류가 발생했습니다. 다시 시도해주세요.');
+            isResetting.current = false;
+            return;
+          }
+        }
+        
+        localStorage.removeItem('tamagotchi_save');
+        localStorage.removeItem('tamagotchi_guest');
+        sessionStorage.clear();
+        window.location.reload();
+      }
     },
     
     recallPet: (petId) => {
