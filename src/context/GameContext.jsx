@@ -1410,8 +1410,41 @@ export const GameProvider = ({ children }) => {
       payload: { id } 
     }),
     
-    saveGame: () => {
+    saveGame: async () => {
+      // 로컬 저장
       localStorage.setItem('tamagotchi_save', JSON.stringify(state));
+      
+      // 서버 저장 (로그인 상태일 때)
+      if (api.isLoggedIn()) {
+        try {
+          await api.saveGameData({
+            coins: state.coins,
+            upgrades: state.upgrades,
+            pets: state.pets,
+            inventory: state.inventory,
+            assets: state.assets,
+            partTimeJob: { isWorking: false },
+            gameTime: state.gameTime,
+            settings: state.settings
+          });
+          console.log('✅ 서버에 게임 저장 완료');
+          dispatch({
+            type: ActionTypes.ADD_NOTIFICATION,
+            payload: { message: '💾 게임이 저장되었습니다!', type: 'success' }
+          });
+        } catch (error) {
+          console.error('❌ 서버 저장 실패:', error);
+          dispatch({
+            type: ActionTypes.ADD_NOTIFICATION,
+            payload: { message: '⚠️ 서버 저장 실패 (로컬에만 저장됨)', type: 'warning' }
+          });
+        }
+      } else {
+        dispatch({
+          type: ActionTypes.ADD_NOTIFICATION,
+          payload: { message: '💾 로컬에 저장되었습니다', type: 'success' }
+        });
+      }
     },
     
     resetGame: () => {
