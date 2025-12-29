@@ -98,6 +98,17 @@ const GameScreen = () => {
         )}
       </div>
 
+      {/* 강제 저장 버튼 */}
+      <button 
+        className="force-save-btn"
+        onClick={() => actions.saveGame()}
+        aria-label="게임 저장"
+      >
+        <span className="save-icon">💾</span>
+        <span className="save-text">저장</span>
+      </button>
+
+
       {/* 시간 표시 */}
       <div className="time-display">
         <span className="time-icon">{isNight ? '🌙' : isEvening ? '🌅' : '☀️'}</span>

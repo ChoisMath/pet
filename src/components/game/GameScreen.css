@@ -287,6 +287,44 @@
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
+/* 강제 저장 버튼 */
+.force-save-btn {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 20px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  cursor: pointer;
+  z-index: 100;
+  transition: all 0.2s ease;
+  color: #333;
+}
+
+.force-save-btn:hover {
+  background: #FFF;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+}
+
+.force-save-btn:active {
+  transform: translateY(0);
+}
+
+.force-save-btn .save-icon {
+  font-size: 18px;
+}
+
+.force-save-btn .save-text {
+  font-size: 14px;
+  font-weight: 700;
+}
+
 /* 반응형 */
 @media (max-width: 480px) {
   .time-display {
@@ -300,5 +338,19 @@
   .pets-container {
     bottom: 20%;
     gap: 10px;
+  }
+  
+  .force-save-btn {
+    bottom: 15px;
+    right: 15px;
+    padding: 8px 14px;
+  }
+  
+  .force-save-btn .save-text {
+    display: none; /* 모바일에서는 텍스트 숨기고 아이콘만 */
+  }
+  
+  .force-save-btn .save-icon {
+    font-size: 20px;
   }
 }
