@@ -1,21 +1,79 @@
-import React, { createContext, useContext, useReducer, useEffect, useRef, useCallback } from 'react';
-import { getDefaultColor } from '../utils/petColors';
-import * as api from '../services/api';
+import React, {
+  createContext,
+  useContext,
+  useReducer,
+  useEffect,
+  useRef,
+  useCallback,
+} from "react";
+import { getDefaultColor } from "../utils/petColors";
+import * as api from "../services/api";
 
 // 알바 정보 - 펫별로 관리, 초당 코인 획득
 const JOB_TYPES = {
-  delivery: { name: '배달', icon: '🚴', baseCost: 200, costIncrement: 100, baseEarn: 1, earnIncrement: 1 },
-  cleaning: { name: '청소', icon: '🧹', baseCost: 500, costIncrement: 300, baseEarn: 3, earnIncrement: 3 },
-  tutoring: { name: '과외', icon: '📚', baseCost: 1000, costIncrement: 500, baseEarn: 5, earnIncrement: 5 }
+  delivery: {
+    name: "배달",
+    icon: "🚴",
+    baseCost: 200,
+    costIncrement: 100,
+    baseEarn: 1,
+    earnIncrement: 1,
+  },
+  cleaning: {
+    name: "청소",
+    icon: "🧹",
+    baseCost: 500,
+    costIncrement: 300,
+    baseEarn: 3,
+    earnIncrement: 3,
+  },
+  tutoring: {
+    name: "과외",
+    icon: "📚",
+    baseCost: 1000,
+    costIncrement: 500,
+    baseEarn: 5,
+    earnIncrement: 5,
+  },
 };
 
 // 자산 정보 - 알바 수익 배율 증가
 const ASSET_TYPES = {
-  paperBox: { name: '종이박스', icon: '📦', baseCost: 1000, multiplier: 1.1, maxLevel: 20 },
-  woodBox: { name: '나무박스', icon: '🪵', baseCost: 3000, multiplier: 1.3, maxLevel: 20 },
-  woodHouse: { name: '나무집', icon: '🏠', baseCost: 5000, multiplier: 1.5, maxLevel: 20 },
-  plasticHouse: { name: '플라스틱집', icon: '🏡', baseCost: 10000, multiplier: 2.0, maxLevel: 20 },
-  concreteHouse: { name: '콘크리트집', icon: '🏢', baseCost: 20000, multiplier: 3.0, maxLevel: 20 }
+  paperBox: {
+    name: "종이박스",
+    icon: "📦",
+    baseCost: 1000,
+    multiplier: 1.1,
+    maxLevel: 20,
+  },
+  woodBox: {
+    name: "나무박스",
+    icon: "🪵",
+    baseCost: 3000,
+    multiplier: 1.3,
+    maxLevel: 20,
+  },
+  woodHouse: {
+    name: "나무집",
+    icon: "🏠",
+    baseCost: 5000,
+    multiplier: 1.5,
+    maxLevel: 20,
+  },
+  plasticHouse: {
+    name: "플라스틱집",
+    icon: "🏡",
+    baseCost: 10000,
+    multiplier: 2.0,
+    maxLevel: 20,
+  },
+  concreteHouse: {
+    name: "콘크리트집",
+    icon: "🏢",
+    baseCost: 20000,
+    multiplier: 3.0,
+    maxLevel: 20,
+  },
 };
 
 // 초기 상태
@@ -23,48 +81,48 @@ const initialState = {
   pets: [],
   selectedPetId: null,
   coins: 100,
-  
+
   // 강화 시스템
   upgrades: {
     fingernail: { level: 0, maxLevel: 20, baseCost: 100, coinPerClick: 1 },
     toenail: { level: 0, maxLevel: 20, baseCost: 500, coinPerClick: 5 },
-    fullbody: { level: 0, maxLevel: 20, baseCost: 2000, coinPerClick: 20 }
+    fullbody: { level: 0, maxLevel: 20, baseCost: 2000, coinPerClick: 20 },
   },
-  
+
   // 인벤토리 (레벨 포함)
   inventory: {
-    food: { 
-      apple: { count: 3, level: 1, basePrice: 10 }, 
-      meat: { count: 2, level: 1, basePrice: 25 }, 
-      cookie: { count: 1, level: 1, basePrice: 15 } 
+    food: {
+      apple: { count: 3, level: 1, basePrice: 10 },
+      meat: { count: 2, level: 1, basePrice: 25 },
+      cookie: { count: 1, level: 1, basePrice: 15 },
     },
-    medicine: { 
-      pill: { count: 2, level: 1, basePrice: 50 } 
+    medicine: {
+      pill: { count: 2, level: 1, basePrice: 50 },
     },
-    toys: { ball: 1, yarn: 1 }
+    toys: { ball: 1, yarn: 1 },
   },
-  
+
   // 자산 시스템 (알바 수익 배율)
   assets: {
     paperBox: { level: 0 },
     woodBox: { level: 0 },
     woodHouse: { level: 0 },
     plasticHouse: { level: 0 },
-    concreteHouse: { level: 0 }
+    concreteHouse: { level: 0 },
   },
-  
+
   gameTime: {
     day: 1,
     hour: 12,
-    isNight: false
+    isNight: false,
   },
   notifications: [],
   lastSaveTime: Date.now(),
   lastJobTick: Date.now(), // 초당 코인을 위한 마지막 틱 시간
   settings: {
     soundEnabled: true,
-    vibrationEnabled: true
-  }
+    vibrationEnabled: true,
+  },
 };
 
 // 펫 생성 함수
@@ -74,7 +132,7 @@ const createPet = (type, name) => ({
   name: name || getDefaultName(type),
   colorId: getDefaultColor(type),
   createdAt: Date.now(),
-  
+
   stats: {
     hunger: 80,
     happiness: 80,
@@ -82,52 +140,52 @@ const createPet = (type, name) => ({
     energy: 100,
     cleanliness: 90,
   },
-  
+
   growth: {
-    stage: 'baby',
+    stage: "baby",
     exp: 0,
     level: 1,
   },
-  
-  state: 'idle',
-  mood: 'happy',
-  
+
+  state: "idle",
+  mood: "happy",
+
   // 수면 에너지 회복용
   sleepStart: null,
   energyAtSleepStart: null,
-  
+
   position: {
     x: 50 + Math.random() * 200,
-    y: 100
+    y: 100,
   },
   direction: 1,
-  
+
   poopCount: 0,
   isSick: false,
   hasRunAway: false,
   lastFed: Date.now(),
   lastPlayed: Date.now(),
-  
+
   // 특수 활동 상태
   specialActivity: null,
   activityProgress: 0,
-  
+
   // 펫별 알바 시스템 (깨어있을 때만 가능)
   jobs: {
     delivery: { level: 0, unlocked: false },
     cleaning: { level: 0, unlocked: false },
-    tutoring: { level: 0, unlocked: false }
+    tutoring: { level: 0, unlocked: false },
   },
   currentJob: null, // 현재 진행중인 알바 (깨어있을 때만)
   jobStartTime: null,
-  jobEarned: 0
+  jobEarned: 0,
 });
 
 const getDefaultName = (type) => {
   const names = {
-    dog: ['멍멍이', '바둑이', '초코', '뽀삐', '두부'],
-    cat: ['야옹이', '나비', '치즈', '모찌', '루나'],
-    hamster: ['햄찌', '동글이', '씨앗이', '뽀롱이', '솜이']
+    dog: ["멍멍이", "바둑이", "초코", "뽀삐", "두부"],
+    cat: ["야옹이", "나비", "치즈", "모찌", "루나"],
+    hamster: ["햄찌", "동글이", "씨앗이", "뽀롱이", "솜이"],
   };
   const typeNames = names[type] || names.dog;
   return typeNames[Math.floor(Math.random() * typeNames.length)];
@@ -137,9 +195,13 @@ const getDefaultName = (type) => {
 const calculateClickCoins = (upgrades) => {
   if (!upgrades) return 1;
   const base = 1;
-  const fingernail = (upgrades.fingernail?.level || 0) * (upgrades.fingernail?.coinPerClick || 1);
-  const toenail = (upgrades.toenail?.level || 0) * (upgrades.toenail?.coinPerClick || 5);
-  const fullbody = (upgrades.fullbody?.level || 0) * (upgrades.fullbody?.coinPerClick || 20);
+  const fingernail =
+    (upgrades.fingernail?.level || 0) *
+    (upgrades.fingernail?.coinPerClick || 1);
+  const toenail =
+    (upgrades.toenail?.level || 0) * (upgrades.toenail?.coinPerClick || 5);
+  const fullbody =
+    (upgrades.fullbody?.level || 0) * (upgrades.fullbody?.coinPerClick || 20);
   return base + fingernail + toenail + fullbody;
 };
 
@@ -163,12 +225,12 @@ const calculateFoodUpgradeCost = (basePrice, level) => {
 const calculateJobCost = (jobType, currentLevel) => {
   const job = JOB_TYPES[jobType];
   if (!job) return 0;
-  
+
   // 해금(Lv0): 기본 비용 유지
   if (currentLevel === 0) {
     return job.baseCost;
   }
-  
+
   // 업그레이드: Lv당 10배씩 증가 (Lv1->2: Base*10, Lv2->3: Base*100)
   return job.baseCost * Math.pow(10, currentLevel);
 };
@@ -214,50 +276,50 @@ const getPetRequiredExp = (level) => {
 
 // 액션 타입
 const ActionTypes = {
-  ADD_PET: 'ADD_PET',
-  REMOVE_PET: 'REMOVE_PET',
-  SELECT_PET: 'SELECT_PET',
-  UPDATE_PET_SETTINGS: 'UPDATE_PET_SETTINGS',
-  UPDATE_PET_STATS: 'UPDATE_PET_STATS',
-  UPDATE_PET_STATE: 'UPDATE_PET_STATE',
-  FEED_PET: 'FEED_PET',
-  PLAY_WITH_PET: 'PLAY_WITH_PET',
-  SPECIAL_ACTIVITY: 'SPECIAL_ACTIVITY',
-  END_SPECIAL_ACTIVITY: 'END_SPECIAL_ACTIVITY',
-  UPDATE_ACTIVITY_PROGRESS: 'UPDATE_ACTIVITY_PROGRESS',
-  CLEAN_PET: 'CLEAN_PET',
-  HEAL_PET: 'HEAL_PET',
-  SLEEP_PET: 'SLEEP_PET',
-  WAKE_PET: 'WAKE_PET',
-  ADD_POOP: 'ADD_POOP',
-  CLICK_PET: 'CLICK_PET',
-  UPGRADE: 'UPGRADE',
-  UPGRADE_FOOD: 'UPGRADE_FOOD',
-  BUY_ITEM: 'BUY_ITEM',
-  UNLOCK_JOB: 'UNLOCK_JOB',
-  UPGRADE_JOB: 'UPGRADE_JOB',
-  START_JOB: 'START_JOB',
-  END_JOB: 'END_JOB',
-  JOB_SECOND_TICK: 'JOB_SECOND_TICK',
-  UPGRADE_ASSET: 'UPGRADE_ASSET',
-  ADD_COINS: 'ADD_COINS',
-  SPEND_COINS: 'SPEND_COINS',
-  UPDATE_GAME_TIME: 'UPDATE_GAME_TIME',
-  ADD_NOTIFICATION: 'ADD_NOTIFICATION',
-  REMOVE_NOTIFICATION: 'REMOVE_NOTIFICATION',
-  LOAD_GAME: 'LOAD_GAME',
-  TICK: 'TICK',
-  APPLY_OFFLINE_PENALTY: 'APPLY_OFFLINE_PENALTY',
-  RECALL_PET: 'RECALL_PET',
+  ADD_PET: "ADD_PET",
+  REMOVE_PET: "REMOVE_PET",
+  SELECT_PET: "SELECT_PET",
+  UPDATE_PET_SETTINGS: "UPDATE_PET_SETTINGS",
+  UPDATE_PET_STATS: "UPDATE_PET_STATS",
+  UPDATE_PET_STATE: "UPDATE_PET_STATE",
+  FEED_PET: "FEED_PET",
+  PLAY_WITH_PET: "PLAY_WITH_PET",
+  SPECIAL_ACTIVITY: "SPECIAL_ACTIVITY",
+  END_SPECIAL_ACTIVITY: "END_SPECIAL_ACTIVITY",
+  UPDATE_ACTIVITY_PROGRESS: "UPDATE_ACTIVITY_PROGRESS",
+  CLEAN_PET: "CLEAN_PET",
+  HEAL_PET: "HEAL_PET",
+  SLEEP_PET: "SLEEP_PET",
+  WAKE_PET: "WAKE_PET",
+  ADD_POOP: "ADD_POOP",
+  CLICK_PET: "CLICK_PET",
+  UPGRADE: "UPGRADE",
+  UPGRADE_FOOD: "UPGRADE_FOOD",
+  BUY_ITEM: "BUY_ITEM",
+  UNLOCK_JOB: "UNLOCK_JOB",
+  UPGRADE_JOB: "UPGRADE_JOB",
+  START_JOB: "START_JOB",
+  END_JOB: "END_JOB",
+  JOB_SECOND_TICK: "JOB_SECOND_TICK",
+  UPGRADE_ASSET: "UPGRADE_ASSET",
+  ADD_COINS: "ADD_COINS",
+  SPEND_COINS: "SPEND_COINS",
+  UPDATE_GAME_TIME: "UPDATE_GAME_TIME",
+  ADD_NOTIFICATION: "ADD_NOTIFICATION",
+  REMOVE_NOTIFICATION: "REMOVE_NOTIFICATION",
+  LOAD_GAME: "LOAD_GAME",
+  TICK: "TICK",
+  APPLY_OFFLINE_PENALTY: "APPLY_OFFLINE_PENALTY",
+  RECALL_PET: "RECALL_PET",
 };
 
 // 성장 단계 경험치 요구량
 const GROWTH_REQUIREMENTS = {
-  egg: { expRequired: 10, nextStage: 'baby' },
-  baby: { expRequired: 50, nextStage: 'child' },
-  child: { expRequired: 150, nextStage: 'teen' },
-  teen: { expRequired: 300, nextStage: 'adult' },
-  adult: { expRequired: Infinity, nextStage: null }
+  egg: { expRequired: 10, nextStage: "baby" },
+  baby: { expRequired: 50, nextStage: "child" },
+  child: { expRequired: 150, nextStage: "teen" },
+  teen: { expRequired: 300, nextStage: "adult" },
+  adult: { expRequired: Infinity, nextStage: null },
 };
 
 // 리듀서
@@ -268,60 +330,61 @@ const gameReducer = (state, action) => {
       return {
         ...state,
         pets: [...state.pets, newPet],
-        selectedPetId: newPet.id
+        selectedPetId: newPet.id,
       };
     }
 
     case ActionTypes.REMOVE_PET: {
       return {
         ...state,
-        pets: state.pets.filter(p => p.id !== action.payload.petId),
-        selectedPetId: state.selectedPetId === action.payload.petId 
-          ? (state.pets[0]?.id || null) 
-          : state.selectedPetId
+        pets: state.pets.filter((p) => p.id !== action.payload.petId),
+        selectedPetId:
+          state.selectedPetId === action.payload.petId
+            ? state.pets[0]?.id || null
+            : state.selectedPetId,
       };
     }
 
     // 도망간 펫 소환
     case ActionTypes.RECALL_PET: {
       const { petId } = action.payload;
-      const pet = state.pets.find(p => p.id === petId);
+      const pet = state.pets.find((p) => p.id === petId);
       if (!pet || !pet.hasRunAway) return state;
-      
+
       const cost = calculateRecallCost(pet.growth.level);
       if (state.coins < cost) return state;
-      
+
       return {
         ...state,
         coins: state.coins - cost,
-        pets: state.pets.map(p => 
+        pets: state.pets.map((p) =>
           p.id === petId
             ? {
                 ...p,
                 hasRunAway: false,
-                state: 'idle',
+                state: "idle",
                 stats: {
                   hunger: 50,
                   happiness: 50,
                   health: 50,
                   energy: 50,
-                  cleanliness: 50
+                  cleanliness: 50,
                 },
-                mood: 'happy',
+                mood: "happy",
                 isSick: false,
                 poopCount: 0,
                 currentJob: null,
-                jobStartTime: null
+                jobStartTime: null,
               }
             : p
-        )
+        ),
       };
     }
 
     case ActionTypes.SELECT_PET: {
       return {
         ...state,
-        selectedPetId: action.payload.petId
+        selectedPetId: action.payload.petId,
       };
     }
 
@@ -329,27 +392,25 @@ const gameReducer = (state, action) => {
       const { petId, updates } = action.payload;
       return {
         ...state,
-        pets: state.pets.map(pet => 
-          pet.id === petId
-            ? { ...pet, ...updates }
-            : pet
-        )
+        pets: state.pets.map((pet) =>
+          pet.id === petId ? { ...pet, ...updates } : pet
+        ),
       };
     }
 
     case ActionTypes.CLICK_PET: {
       // 펫이 잠자고 있으면 코인 획득 불가
-      const pet = state.pets.find(p => p.id === action.payload.petId);
-      if (!pet || pet.state === 'sleep') return state;
-      
+      const pet = state.pets.find((p) => p.id === action.payload.petId);
+      if (!pet || pet.state === "sleep") return state;
+
       const coinsEarned = calculateClickCoins(state.upgrades);
-      
+
       // 현재 코인이 NaN이면 0으로 간주
       const currentCoins = Number.isNaN(Number(state.coins)) ? 0 : state.coins;
-      
+
       return {
         ...state,
-        coins: currentCoins + coinsEarned
+        coins: currentCoins + coinsEarned,
       };
     }
 
@@ -357,26 +418,33 @@ const gameReducer = (state, action) => {
       const { upgradeType } = action.payload;
       const upgrade = state.upgrades[upgradeType];
       if (!upgrade) return state;
-      
-      const maxPetLevel = state.pets.reduce((max, pet) => Math.max(max, pet.growth.level), 1);
-      
+
+      const maxPetLevel = state.pets.reduce(
+        (max, pet) => Math.max(max, pet.growth.level),
+        1
+      );
+
       // 시스템 최대 레벨 또는 펫 최대 레벨 중 낮은 것에 도달했는지 확인
       if (upgrade.level >= upgrade.maxLevel || upgrade.level >= maxPetLevel) {
         if (upgrade.level >= maxPetLevel) {
           return {
-             ...state,
-             notifications: [
-               ...state.notifications,
-               { id: Date.now(), message: `⚠️ 펫 최대 레벨(${maxPetLevel})까지만 강화할 수 있어요!`, type: 'warning' }
-             ]
+            ...state,
+            notifications: [
+              ...state.notifications,
+              {
+                id: Date.now(),
+                message: `⚠️ 펫 최대 레벨(${maxPetLevel})까지만 강화할 수 있어요!`,
+                type: "warning",
+              },
+            ],
           };
         }
         return state;
       }
-      
+
       const cost = calculateUpgradeCost(upgrade.baseCost, upgrade.level);
       if (state.coins < cost) return state;
-      
+
       return {
         ...state,
         coins: state.coins - cost,
@@ -384,9 +452,9 @@ const gameReducer = (state, action) => {
           ...state.upgrades,
           [upgradeType]: {
             ...upgrade,
-            level: upgrade.level + 1
-          }
-        }
+            level: upgrade.level + 1,
+          },
+        },
       };
     }
 
@@ -394,22 +462,29 @@ const gameReducer = (state, action) => {
       const { itemType, itemName } = action.payload;
       const item = state.inventory[itemType]?.[itemName];
       if (!item) return state;
-      
-      const maxPetLevel = state.pets.reduce((max, pet) => Math.max(max, pet.growth.level), 1);
-      
+
+      const maxPetLevel = state.pets.reduce(
+        (max, pet) => Math.max(max, pet.growth.level),
+        1
+      );
+
       if (item.level >= maxPetLevel) {
         return {
-           ...state,
-           notifications: [
-             ...state.notifications,
-             { id: Date.now(), message: `⚠️ 펫 최대 레벨(${maxPetLevel})까지만 강화할 수 있어요!`, type: 'warning' }
-           ]
+          ...state,
+          notifications: [
+            ...state.notifications,
+            {
+              id: Date.now(),
+              message: `⚠️ 펫 최대 레벨(${maxPetLevel})까지만 강화할 수 있어요!`,
+              type: "warning",
+            },
+          ],
         };
       }
-      
+
       const cost = calculateFoodUpgradeCost(item.basePrice, item.level);
       if (state.coins < cost) return state;
-      
+
       return {
         ...state,
         coins: state.coins - cost,
@@ -419,44 +494,46 @@ const gameReducer = (state, action) => {
             ...state.inventory[itemType],
             [itemName]: {
               ...item,
-              level: item.level + 1
-            }
-          }
-        }
+              level: item.level + 1,
+            },
+          },
+        },
       };
     }
 
     case ActionTypes.FEED_PET: {
       const { petId, foodType } = action.payload;
-      const pet = state.pets.find(p => p.id === petId);
-      if (!pet || pet.state === 'sleep') return state; // 수면 중에는 먹이기 불가
-      
+      const pet = state.pets.find((p) => p.id === petId);
+      if (!pet || pet.state === "sleep") return state; // 수면 중에는 먹이기 불가
+
       const foodItem = state.inventory.food[foodType];
       if (!foodItem || foodItem.count <= 0) return state;
-      
+
       const foodValues = {
         apple: { hunger: 20, happiness: 5 },
         meat: { hunger: 40, happiness: 10 },
         cookie: { hunger: 10, happiness: 20 },
       };
       const baseFood = foodValues[foodType] || foodValues.apple;
-      
-      const effectMultiplier = pet.growth.level <= foodItem.level ? 1 : 
-        1 / Math.pow(2, pet.growth.level - foodItem.level);
-      
+
+      const effectMultiplier =
+        pet.growth.level <= foodItem.level
+          ? 1
+          : 1 / Math.pow(2, pet.growth.level - foodItem.level);
+
       const actualHunger = Math.floor(baseFood.hunger * effectMultiplier);
       const actualHappiness = Math.floor(baseFood.happiness * effectMultiplier);
-      
+
       return {
         ...state,
-        pets: state.pets.map(p => {
+        pets: state.pets.map((p) => {
           if (p.id !== petId) return p;
-          
+
           // 경험치 계산: 기본 10 * 2^(음식레벨-1)
           const expGain = 10 * Math.pow(2, foodItem.level - 1);
           let newExp = p.growth.exp + expGain;
           let newLevel = p.growth.level;
-          
+
           while (true) {
             const req = getPetRequiredExp(newLevel);
             if (newExp >= req) {
@@ -474,13 +551,13 @@ const gameReducer = (state, action) => {
               hunger: Math.min(100, p.stats.hunger + actualHunger),
               happiness: Math.min(100, p.stats.happiness + actualHappiness),
             },
-            state: 'eating',
+            state: "eating",
             lastFed: Date.now(),
             growth: {
               ...p.growth,
               exp: newExp,
-              level: newLevel
-            }
+              level: newLevel,
+            },
           };
         }),
         inventory: {
@@ -489,30 +566,30 @@ const gameReducer = (state, action) => {
             ...state.inventory.food,
             [foodType]: {
               ...foodItem,
-              count: foodItem.count - 1
-            }
-          }
-        }
+              count: foodItem.count - 1,
+            },
+          },
+        },
       };
     }
 
     case ActionTypes.SPECIAL_ACTIVITY: {
       const { petId, activityType } = action.payload;
-      const pet = state.pets.find(p => p.id === petId);
-      if (!pet || pet.state === 'sleep') return state; // 수면 중에는 활동 불가
-      
+      const pet = state.pets.find((p) => p.id === petId);
+      if (!pet || pet.state === "sleep") return state; // 수면 중에는 활동 불가
+
       return {
         ...state,
-        pets: state.pets.map(p => 
+        pets: state.pets.map((p) =>
           p.id === petId
             ? {
                 ...p,
-                state: 'playing',
+                state: "playing",
                 specialActivity: activityType,
-                activityProgress: 0
+                activityProgress: 0,
               }
             : p
-        )
+        ),
       };
     }
 
@@ -520,11 +597,9 @@ const gameReducer = (state, action) => {
       const { petId, progress } = action.payload;
       return {
         ...state,
-        pets: state.pets.map(pet => 
-          pet.id === petId
-            ? { ...pet, activityProgress: progress }
-            : pet
-        )
+        pets: state.pets.map((pet) =>
+          pet.id === petId ? { ...pet, activityProgress: progress } : pet
+        ),
       };
     }
 
@@ -532,44 +607,48 @@ const gameReducer = (state, action) => {
       const { petId } = action.payload;
       return {
         ...state,
-        pets: state.pets.map(pet => 
+        pets: state.pets.map((pet) =>
           pet.id === petId
             ? {
                 ...pet,
-                state: 'idle',
+                state: "idle",
                 specialActivity: null,
                 activityProgress: 0,
                 stats: {
                   ...pet.stats,
                   happiness: Math.min(100, pet.stats.happiness + 30),
-                  energy: Math.max(0, pet.stats.energy - 20)
-                }
+                  energy: Math.max(0, pet.stats.energy - 20),
+                },
               }
             : pet
-        )
+        ),
       };
     }
 
     case ActionTypes.CLEAN_PET: {
       const { petId } = action.payload;
-      const pet = state.pets.find(p => p.id === petId);
-      if (!pet || pet.state === 'sleep') return state;
-      
+      const pet = state.pets.find((p) => p.id === petId);
+      if (!pet || pet.state === "sleep") return state;
+
       const cleanCost = 30 * pet.growth.level;
       if (state.coins < cleanCost) {
         return {
           ...state,
           notifications: [
             ...state.notifications,
-            { id: Date.now(), message: `⚠️ 청소 비용(${cleanCost}코인)이 부족해요!`, type: 'warning' }
-          ]
+            {
+              id: Date.now(),
+              message: `⚠️ 청소 비용(${cleanCost}코인)이 부족해요!`,
+              type: "warning",
+            },
+          ],
         };
       }
-      
+
       return {
         ...state,
         coins: state.coins - cleanCost,
-        pets: state.pets.map(p => 
+        pets: state.pets.map((p) =>
           p.id === petId
             ? {
                 ...p,
@@ -581,11 +660,11 @@ const gameReducer = (state, action) => {
                 poopCount: 0,
                 growth: {
                   ...p.growth,
-                  exp: p.growth.exp + 3
-                }
+                  exp: p.growth.exp + 3,
+                },
               }
             : p
-        )
+        ),
       };
     }
 
@@ -593,24 +672,26 @@ const gameReducer = (state, action) => {
       const { petId } = action.payload;
       const pillItem = state.inventory.medicine.pill;
       if (!pillItem || pillItem.count <= 0) return state;
-      
-      const pet = state.pets.find(p => p.id === petId);
-      if (!pet || pet.state === 'sleep') return state;
-      
-      const effectMultiplier = pet.growth.level <= pillItem.level ? 1 : 
-        1 / Math.pow(2, pet.growth.level - pillItem.level);
+
+      const pet = state.pets.find((p) => p.id === petId);
+      if (!pet || pet.state === "sleep") return state;
+
+      const effectMultiplier =
+        pet.growth.level <= pillItem.level
+          ? 1
+          : 1 / Math.pow(2, pet.growth.level - pillItem.level);
       const healAmount = Math.floor(100 * effectMultiplier);
-      
+
       return {
         ...state,
-        pets: state.pets.map(p => {
+        pets: state.pets.map((p) => {
           if (p.id !== petId) return p;
-          
+
           // 경험치 계산: 기본 10 * 2^(약품레벨-1)
           const expGain = 10 * Math.pow(2, pillItem.level - 1);
           let newExp = p.growth.exp + expGain;
           let newLevel = p.growth.level;
-          
+
           while (true) {
             const req = getPetRequiredExp(newLevel);
             if (newExp >= req) {
@@ -620,7 +701,7 @@ const gameReducer = (state, action) => {
               break;
             }
           }
-          
+
           return {
             ...p,
             stats: {
@@ -628,13 +709,13 @@ const gameReducer = (state, action) => {
               health: Math.min(100, p.stats.health + healAmount),
             },
             isSick: healAmount >= 50 ? false : p.isSick,
-            mood: 'happy',
-            state: 'idle',
+            mood: "happy",
+            state: "idle",
             growth: {
               ...p.growth,
               exp: newExp,
-              level: newLevel
-            }
+              level: newLevel,
+            },
           };
         }),
         inventory: {
@@ -643,10 +724,10 @@ const gameReducer = (state, action) => {
             ...state.inventory.medicine,
             pill: {
               ...pillItem,
-              count: pillItem.count - 1
-            }
-          }
-        }
+              count: pillItem.count - 1,
+            },
+          },
+        },
       };
     }
 
@@ -654,52 +735,56 @@ const gameReducer = (state, action) => {
       const { petId } = action.payload;
       return {
         ...state,
-        pets: state.pets.map(pet => 
+        pets: state.pets.map((pet) =>
           pet.id === petId
-            ? { 
-                ...pet, 
-                state: 'sleep', 
+            ? {
+                ...pet,
+                state: "sleep",
                 specialActivity: null,
                 currentJob: null, // 수면 시 알바 중지
                 jobStartTime: null,
                 sleepStart: Date.now(),
-                energyAtSleepStart: pet.stats.energy
+                energyAtSleepStart: pet.stats.energy,
               }
             : pet
-        )
+        ),
       };
     }
 
     case ActionTypes.WAKE_PET: {
       const { petId } = action.payload;
-      const pet = state.pets.find(p => p.id === petId);
-      
+      const pet = state.pets.find((p) => p.id === petId);
+
       if (!pet) return state;
-      
+
       // 에너지가 0이면 깨울 수 없음
       if (pet.stats.energy <= 0) {
         return {
           ...state,
           notifications: [
             ...state.notifications,
-            { id: Date.now(), message: '😴 너무 피곤해서 일어날 수 없어요!', type: 'warning' }
-          ]
+            {
+              id: Date.now(),
+              message: "😴 너무 피곤해서 일어날 수 없어요!",
+              type: "warning",
+            },
+          ],
         };
       }
 
       return {
         ...state,
-        pets: state.pets.map(p => 
+        pets: state.pets.map((p) =>
           p.id === petId
             ? {
                 ...p,
-                state: 'idle',
+                state: "idle",
                 sleepStart: null,
-                energyAtSleepStart: null
+                energyAtSleepStart: null,
                 // 깨울 때 에너지 100으로 초기화하지 않음
               }
             : p
-        )
+        ),
       };
     }
 
@@ -707,108 +792,116 @@ const gameReducer = (state, action) => {
       const { petId } = action.payload;
       return {
         ...state,
-        pets: state.pets.map(pet => 
+        pets: state.pets.map((pet) =>
           pet.id === petId
-            ? { 
-                ...pet, 
+            ? {
+                ...pet,
                 poopCount: pet.poopCount + 1,
                 stats: {
                   ...pet.stats,
                   cleanliness: Math.max(0, pet.stats.cleanliness - 15),
-                  happiness: Math.max(0, pet.stats.happiness - 5)
-                }
+                  happiness: Math.max(0, pet.stats.happiness - 5),
+                },
               }
             : pet
-        )
+        ),
       };
     }
 
     // 알바 잠금해제 (초기 비용)
     case ActionTypes.UNLOCK_JOB: {
       const { petId, jobType } = action.payload;
-      const pet = state.pets.find(p => p.id === petId);
+      const pet = state.pets.find((p) => p.id === petId);
       if (!pet) return state;
-      
+
       const cost = JOB_TYPES[jobType]?.baseCost || 0;
       if (state.coins < cost) return state;
-      
+
       return {
         ...state,
         coins: state.coins - cost,
-        pets: state.pets.map(p => 
+        pets: state.pets.map((p) =>
           p.id === petId
             ? {
                 ...p,
                 jobs: {
                   ...p.jobs,
-                  [jobType]: { level: 1, unlocked: true }
-                }
+                  [jobType]: { level: 1, unlocked: true },
+                },
               }
             : p
-        )
+        ),
       };
     }
 
     // 알바 레벨업 (2배씩 비용 증가)
     case ActionTypes.UPGRADE_JOB: {
       const { petId, jobType } = action.payload;
-      const pet = state.pets.find(p => p.id === petId);
+      const pet = state.pets.find((p) => p.id === petId);
       if (!pet || !pet.jobs[jobType]?.unlocked) return state;
-      
+
       const currentLevel = pet.jobs[jobType].level;
-      const maxPetLevel = state.pets.reduce((max, p) => Math.max(max, p.growth.level), 1);
-      
+      const maxPetLevel = state.pets.reduce(
+        (max, p) => Math.max(max, p.growth.level),
+        1
+      );
+
       if (currentLevel >= maxPetLevel) {
         return {
-           ...state,
-           notifications: [
-             ...state.notifications,
-             { id: Date.now(), message: `⚠️ 펫 최대 레벨(${maxPetLevel})까지만 강화할 수 있어요!`, type: 'warning' }
-           ]
+          ...state,
+          notifications: [
+            ...state.notifications,
+            {
+              id: Date.now(),
+              message: `⚠️ 펫 최대 레벨(${maxPetLevel})까지만 강화할 수 있어요!`,
+              type: "warning",
+            },
+          ],
         };
       }
-      
+
       const cost = calculateJobCost(jobType, currentLevel);
       if (state.coins < cost) return state;
-      
+
       return {
         ...state,
         coins: state.coins - cost,
-        pets: state.pets.map(p => 
+        pets: state.pets.map((p) =>
           p.id === petId
             ? {
                 ...p,
                 jobs: {
                   ...p.jobs,
-                  [jobType]: { 
+                  [jobType]: {
                     ...p.jobs[jobType],
-                    level: currentLevel + 1 
-                  }
-                }
+                    level: currentLevel + 1,
+                  },
+                },
               }
             : p
-        )
+        ),
       };
     }
 
     // 알바 시작 (깨어있는 펫만 가능)
     case ActionTypes.START_JOB: {
       const { petId, jobType } = action.payload;
-      const pet = state.pets.find(p => p.id === petId);
-      if (!pet || pet.state === 'sleep' || !pet.jobs[jobType]?.unlocked) return state;
-      
+      const pet = state.pets.find((p) => p.id === petId);
+      if (!pet || pet.state === "sleep" || !pet.jobs[jobType]?.unlocked)
+        return state;
+
       return {
         ...state,
-        pets: state.pets.map(p => 
+        pets: state.pets.map((p) =>
           p.id === petId
             ? {
                 ...p,
                 currentJob: jobType,
                 jobStartTime: Date.now(),
-                jobEarned: 0
+                jobEarned: 0,
               }
             : p
-        )
+        ),
       };
     }
 
@@ -817,16 +910,16 @@ const gameReducer = (state, action) => {
       const { petId } = action.payload;
       return {
         ...state,
-        pets: state.pets.map(p => 
+        pets: state.pets.map((p) =>
           p.id === petId
             ? {
                 ...p,
                 currentJob: null,
                 jobStartTime: null,
-                jobEarned: 0
+                jobEarned: 0,
               }
             : p
-        )
+        ),
       };
     }
 
@@ -834,17 +927,20 @@ const gameReducer = (state, action) => {
     case ActionTypes.JOB_SECOND_TICK: {
       let totalEarned = 0;
       const assetMultiplier = calculateTotalAssetMultiplier(state.assets);
-      
-      const updatedPets = state.pets.map(pet => {
+
+      const updatedPets = state.pets.map((pet) => {
         // 수면 중이면 알바 수익 없음
-        if (pet.state === 'sleep') return pet;
-        
+        if (pet.state === "sleep") return pet;
+
         let petEarned = 0;
-        
+
         // 모든 해금된 알바에서 수익 발생 (누적)
         Object.entries(pet.jobs).forEach(([jobType, jobData]) => {
           if (jobData.unlocked && jobData.level > 0) {
-            const baseEarned = calculateJobEarnPerSecond(jobType, jobData.level);
+            const baseEarned = calculateJobEarnPerSecond(
+              jobType,
+              jobData.level
+            );
             petEarned += baseEarned;
           }
         });
@@ -852,26 +948,26 @@ const gameReducer = (state, action) => {
         // 자산 배율 적용 (전체 합산 후 배율 적용)
         const finalEarned = Math.floor(petEarned * assetMultiplier);
         totalEarned += finalEarned;
-        
+
         return {
           ...pet,
-          jobEarned: (pet.jobEarned || 0) + finalEarned
+          jobEarned: (pet.jobEarned || 0) + finalEarned,
         };
       });
-      
+
       // 수익이 0이면 상태 변경 없음 (불필요한 리렌더링 방지)
       if (totalEarned === 0) {
         return {
           ...state,
-          lastJobTick: Date.now()
+          lastJobTick: Date.now(),
         };
       }
-      
+
       return {
         ...state,
         coins: state.coins + totalEarned,
         pets: updatedPets,
-        lastJobTick: Date.now()
+        lastJobTick: Date.now(),
       };
     }
 
@@ -880,27 +976,37 @@ const gameReducer = (state, action) => {
       const { assetType } = action.payload;
       const asset = ASSET_TYPES[assetType];
       const currentAsset = state.assets[assetType];
-      
+
       if (!asset || !currentAsset) return state;
-      
-      const maxPetLevel = state.pets.reduce((max, pet) => Math.max(max, pet.growth.level), 1);
-      
-      if (currentAsset.level >= asset.maxLevel || currentAsset.level >= maxPetLevel) {
-         if (currentAsset.level >= maxPetLevel) {
+
+      const maxPetLevel = state.pets.reduce(
+        (max, pet) => Math.max(max, pet.growth.level),
+        1
+      );
+
+      if (
+        currentAsset.level >= asset.maxLevel ||
+        currentAsset.level >= maxPetLevel
+      ) {
+        if (currentAsset.level >= maxPetLevel) {
           return {
-             ...state,
-             notifications: [
-               ...state.notifications,
-               { id: Date.now(), message: `⚠️ 펫 최대 레벨(${maxPetLevel})까지만 강화할 수 있어요!`, type: 'warning' }
-             ]
+            ...state,
+            notifications: [
+              ...state.notifications,
+              {
+                id: Date.now(),
+                message: `⚠️ 펫 최대 레벨(${maxPetLevel})까지만 강화할 수 있어요!`,
+                type: "warning",
+              },
+            ],
           };
         }
         return state;
       }
-      
+
       const cost = calculateAssetCost(assetType, currentAsset.level);
       if (state.coins < cost) return state;
-      
+
       return {
         ...state,
         coins: state.coins - cost,
@@ -908,23 +1014,23 @@ const gameReducer = (state, action) => {
           ...state.assets,
           [assetType]: {
             ...currentAsset,
-            level: currentAsset.level + 1
-          }
-        }
+            level: currentAsset.level + 1,
+          },
+        },
       };
     }
 
     case ActionTypes.ADD_COINS: {
       return {
         ...state,
-        coins: state.coins + action.payload.amount
+        coins: state.coins + action.payload.amount,
       };
     }
 
     case ActionTypes.SPEND_COINS: {
       return {
         ...state,
-        coins: Math.max(0, state.coins - action.payload.amount)
+        coins: Math.max(0, state.coins - action.payload.amount),
       };
     }
 
@@ -932,10 +1038,10 @@ const gameReducer = (state, action) => {
       const { itemType, itemName } = action.payload;
       const item = state.inventory[itemType]?.[itemName];
       if (!item) return state;
-      
+
       const price = calculateFoodPrice(item.basePrice, item.level);
       if (state.coins < price) return state;
-      
+
       return {
         ...state,
         coins: state.coins - price,
@@ -945,10 +1051,10 @@ const gameReducer = (state, action) => {
             ...state.inventory[itemType],
             [itemName]: {
               ...item,
-              count: item.count + 1
-            }
-          }
-        }
+              count: item.count + 1,
+            },
+          },
+        },
       };
     }
 
@@ -957,89 +1063,117 @@ const gameReducer = (state, action) => {
         ...state,
         notifications: [
           ...state.notifications,
-          { id: Date.now(), ...action.payload }
-        ].slice(-5)
+          { id: Date.now(), ...action.payload },
+        ].slice(-5),
       };
     }
 
     case ActionTypes.REMOVE_NOTIFICATION: {
       return {
         ...state,
-        notifications: state.notifications.filter(n => n.id !== action.payload.id)
+        notifications: state.notifications.filter(
+          (n) => n.id !== action.payload.id
+        ),
       };
     }
 
     case ActionTypes.LOAD_GAME: {
       // 펫 데이터 병합 & 오프라인 수면 계산
-      const loadedPets = (action.payload.pets || []).map(pet => {
+      const loadedPets = (action.payload.pets || []).map((pet) => {
         const mappedPet = {
           ...pet,
           colorId: pet.colorId || getDefaultColor(pet.type),
           jobs: pet.jobs || {
             delivery: { level: 0, unlocked: false },
             cleaning: { level: 0, unlocked: false },
-            tutoring: { level: 0, unlocked: false }
+            tutoring: { level: 0, unlocked: false },
           },
           currentJob: pet.currentJob || null,
           jobStartTime: pet.jobStartTime || null,
           jobEarned: pet.jobEarned || 0,
           growth: {
             ...pet.growth,
-            exp: Number.isNaN(Number(pet.growth?.exp)) ? 0 : Number(pet.growth?.exp)
-          }
+            exp: Number.isNaN(Number(pet.growth?.exp))
+              ? 0
+              : Number(pet.growth?.exp),
+          },
         };
 
         // 오프라인 수면 에너지 회복
-        if (mappedPet.state === 'sleep' && mappedPet.sleepStart) {
+        if (mappedPet.state === "sleep" && mappedPet.sleepStart) {
           const now = Date.now();
           const elapsedSeconds = (now - mappedPet.sleepStart) / 1000;
-          console.log(`[Offline Sleep] Pet ${mappedPet.name} slept for ${elapsedSeconds.toFixed(1)}s`);
-          
+          console.log(
+            `[Offline Sleep] Pet ${
+              mappedPet.name
+            } slept for ${elapsedSeconds.toFixed(1)}s`
+          );
+
           if (elapsedSeconds > 0) {
-              const energyGain = elapsedSeconds * (0.5 / 60); // 분당 0.5
-              const currentEnergy = mappedPet.stats.energy;
-              
-              if (mappedPet.energyAtSleepStart !== undefined) {
-                mappedPet.stats.energy = Math.min(100, mappedPet.energyAtSleepStart + energyGain);
-                console.log(`[Offline Sleep] Base: ${mappedPet.energyAtSleepStart}, Gain: ${energyGain.toFixed(2)} -> New: ${mappedPet.stats.energy}`);
-              } else {
-                mappedPet.stats.energy = Math.min(100, currentEnergy + energyGain);
-                console.log(`[Offline Sleep] Saved: ${currentEnergy}, Gain: ${energyGain.toFixed(2)} -> New: ${mappedPet.stats.energy}`);
-              }
+            const energyGain = elapsedSeconds * (0.5 / 60); // 분당 0.5
+            const currentEnergy = mappedPet.stats.energy;
+
+            if (mappedPet.energyAtSleepStart !== undefined) {
+              mappedPet.stats.energy = Math.min(
+                100,
+                mappedPet.energyAtSleepStart + energyGain
+              );
+              console.log(
+                `[Offline Sleep] Base: ${
+                  mappedPet.energyAtSleepStart
+                }, Gain: ${energyGain.toFixed(2)} -> New: ${
+                  mappedPet.stats.energy
+                }`
+              );
+            } else {
+              mappedPet.stats.energy = Math.min(
+                100,
+                currentEnergy + energyGain
+              );
+              console.log(
+                `[Offline Sleep] Saved: ${currentEnergy}, Gain: ${energyGain.toFixed(
+                  2
+                )} -> New: ${mappedPet.stats.energy}`
+              );
+            }
           }
         }
         return mappedPet;
       });
-      
+
       // 코인 데이터 안전성 확보 (NaN 체크)
-      const loadedCoins = action.payload.coins !== undefined && !Number.isNaN(Number(action.payload.coins))
-        ? Number(action.payload.coins)
-        : initialState.coins;
+      const loadedCoins =
+        action.payload.coins !== undefined &&
+        !Number.isNaN(Number(action.payload.coins))
+          ? Number(action.payload.coins)
+          : initialState.coins;
 
       // 업그레이드 데이터 병합 (레벨만 로드하고 기본 설정값은 initialState 유지)
       const loadedUpgrades = { ...initialState.upgrades };
       if (action.payload.upgrades) {
-        Object.keys(initialState.upgrades).forEach(key => {
+        Object.keys(initialState.upgrades).forEach((key) => {
           if (action.payload.upgrades[key]) {
-             // 서버/로컬 데이터에서 level만 가져오고, 나머지는 초기 설정값 사용
-             // 이렇게 해야 baseCost 등이 손상되어도 복구됨
-             loadedUpgrades[key] = {
-               ...initialState.upgrades[key], 
-               level: action.payload.upgrades[key].level || 0
-             };
+            // 서버/로컬 데이터에서 level만 가져오고, 나머지는 초기 설정값 사용
+            // 이렇게 해야 baseCost 등이 손상되어도 복구됨
+            loadedUpgrades[key] = {
+              ...initialState.upgrades[key],
+              level: action.payload.upgrades[key].level || 0,
+            };
           }
         });
       }
-      
+
       // 자산 데이터 병합
       const loadedAssets = { ...initialState.assets };
       if (action.payload.assets) {
-        Object.keys(initialState.assets).forEach(key => {
+        console.log("[LOAD_GAME] Server Assets:", action.payload.assets);
+        Object.keys(initialState.assets).forEach((key) => {
           if (action.payload.assets[key]) {
-             loadedAssets[key] = {
-               ...initialState.assets[key],
-               level: action.payload.assets[key].level || 0
-             };
+            const serverLevel = action.payload.assets[key].level;
+            loadedAssets[key] = {
+              ...initialState.assets[key],
+              level: serverLevel !== undefined ? serverLevel : 0,
+            };
           }
         });
       }
@@ -1053,51 +1187,61 @@ const gameReducer = (state, action) => {
         pets: loadedPets,
         inventory: {
           food: {
-            apple: action.payload.inventory?.food?.apple?.count !== undefined 
-              ? action.payload.inventory.food.apple 
-              : { count: 3, level: 1, basePrice: 10 },
-            meat: action.payload.inventory?.food?.meat?.count !== undefined 
-              ? action.payload.inventory.food.meat 
-              : { count: 2, level: 1, basePrice: 25 },
-            cookie: action.payload.inventory?.food?.cookie?.count !== undefined 
-              ? action.payload.inventory.food.cookie 
-              : { count: 1, level: 1, basePrice: 15 },
+            apple:
+              action.payload.inventory?.food?.apple?.count !== undefined
+                ? action.payload.inventory.food.apple
+                : { count: 3, level: 1, basePrice: 10 },
+            meat:
+              action.payload.inventory?.food?.meat?.count !== undefined
+                ? action.payload.inventory.food.meat
+                : { count: 2, level: 1, basePrice: 25 },
+            cookie:
+              action.payload.inventory?.food?.cookie?.count !== undefined
+                ? action.payload.inventory.food.cookie
+                : { count: 1, level: 1, basePrice: 15 },
           },
           medicine: {
-            pill: action.payload.inventory?.medicine?.pill?.count !== undefined 
-              ? action.payload.inventory.medicine.pill 
-              : { count: 2, level: 1, basePrice: 50 },
+            pill:
+              action.payload.inventory?.medicine?.pill?.count !== undefined
+                ? action.payload.inventory.medicine.pill
+                : { count: 2, level: 1, basePrice: 50 },
           },
-          toys: action.payload.inventory?.toys || { ball: 1, yarn: 1 }
+          toys: action.payload.inventory?.toys || { ball: 1, yarn: 1 },
         },
-        lastJobTick: action.payload.lastJobTick || Date.now()
+        lastJobTick: action.payload.lastJobTick || Date.now(),
       };
     }
 
     case ActionTypes.APPLY_OFFLINE_PENALTY: {
       const { offlineSeconds } = action.payload;
       const decayPerSecond = 0.01;
-      
-      console.log(`[Offline Processing] Duration: ${offlineSeconds.toFixed(1)}s`);
+
+      console.log(
+        `[Offline Processing] Duration: ${offlineSeconds.toFixed(1)}s`
+      );
 
       return {
         ...state,
-        pets: state.pets.map(pet => {
-          if (pet.state === 'sleep') {
-             // 수면 중이면 에너지 회복 (분당 0.5)
-             const energyGain = offlineSeconds * (0.5 / 60);
-             const newEnergy = Math.min(100, pet.stats.energy + energyGain);
-             console.log(`[Offline Sleep] Pet ${pet.name}: +${energyGain.toFixed(2)} Energy`);
-             
-             return {
-               ...pet,
-               stats: {
-                 ...pet.stats,
-                 energy: newEnergy
-               }
-             };
+        pets: state.pets.map((pet) => {
+          if (pet.state === "sleep") {
+            // 수면 중이면 에너지 회복 (분당 0.5)
+            const energyGain = offlineSeconds * (0.5 / 60);
+            const newEnergy = Math.min(100, pet.stats.energy + energyGain);
+            console.log(
+              `[Offline Sleep] Pet ${pet.name}: +${energyGain.toFixed(
+                2
+              )} Energy`
+            );
+
+            return {
+              ...pet,
+              stats: {
+                ...pet.stats,
+                energy: newEnergy,
+              },
+            };
           }
-          
+
           const decay = offlineSeconds * decayPerSecond;
           return {
             ...pet,
@@ -1107,9 +1251,9 @@ const gameReducer = (state, action) => {
               health: Math.max(0, pet.stats.health - decay),
               energy: Math.max(0, pet.stats.energy - decay),
               cleanliness: Math.max(0, pet.stats.cleanliness - decay * 0.5),
-            }
+            },
           };
-        })
+        }),
       };
     }
 
@@ -1117,31 +1261,31 @@ const gameReducer = (state, action) => {
       return {
         ...state,
         lastSaveTime: Date.now(),
-        pets: state.pets.map(pet => {
+        pets: state.pets.map((pet) => {
           if (pet.hasRunAway) return pet;
 
           // 수면 중 에너지 회복 (2분에 1 = 120초에 1, 틱당 3초 => 120/3 = 40틱에 1 => 틱당 0.025)
-          if (pet.state === 'sleep') {
+          if (pet.state === "sleep") {
             return {
               ...pet,
               stats: {
                 ...pet.stats,
-                energy: Math.min(100, pet.stats.energy + 0.025)
-              }
+                energy: Math.min(100, pet.stats.energy + 0.025),
+              },
             };
           }
-          
+
           const newStats = { ...pet.stats };
-          
+
           newStats.hunger = Math.max(0, newStats.hunger - 0.5);
           newStats.happiness = Math.max(0, newStats.happiness - 0.3);
-          
+
           // 깨어있는 동안 에너지 감소 (1분에 1 = 60초에 1, 틱당 3초 => 60/3 = 20틱에 1 => 틱당 0.05)
           newStats.energy = Math.max(0, newStats.energy - 0.05);
-          
+
           const prevCleanliness = newStats.cleanliness;
           newStats.cleanliness = Math.max(0, newStats.cleanliness - 0.1);
-          
+
           // 청결도 70, 40, 10 도달 시 똥 생성
           let newPoopCount = pet.poopCount;
           if (
@@ -1151,41 +1295,47 @@ const gameReducer = (state, action) => {
           ) {
             newPoopCount += 1;
           }
-          
+
           if (newStats.hunger < 20 || newStats.cleanliness < 20) {
             newStats.health = Math.max(0, newStats.health - 0.3);
           }
-          
+
           let newMood = pet.mood;
           let newIsSick = pet.isSick;
-          
+
           if (newStats.health < 30) {
-            newMood = 'sick';
+            newMood = "sick";
             newIsSick = true;
           } else if (newStats.happiness < 30) {
-            newMood = 'sad';
+            newMood = "sad";
           } else if (newStats.energy < 20) {
-            newMood = 'tired';
+            newMood = "tired";
           } else {
-            newMood = 'happy';
+            newMood = "happy";
           }
-          
+
           // 배고픔 0, 행복 0, 또는 똥 5개 이상이면 도망
-          const hasRunAway = newStats.hunger <= 0 || newStats.happiness <= 0 || newPoopCount >= 5;
-          
+          const hasRunAway =
+            newStats.hunger <= 0 ||
+            newStats.happiness <= 0 ||
+            newPoopCount >= 5;
+
           // 에너지가 0이 되면 강제 수면
           let nextState = pet.state;
           let currentJob = pet.currentJob;
           let specialActivity = pet.specialActivity;
-          
-          if (newStats.energy <= 0 && pet.state !== 'sleep') {
-            nextState = 'sleep';
+
+          if (newStats.energy <= 0 && pet.state !== "sleep") {
+            nextState = "sleep";
             currentJob = null; // 알바 중지
             specialActivity = null; // 특수 활동 중지
-          } else if (pet.state === 'eating' || (pet.state === 'playing' && !pet.specialActivity)) {
-            nextState = 'idle';
+          } else if (
+            pet.state === "eating" ||
+            (pet.state === "playing" && !pet.specialActivity)
+          ) {
+            nextState = "idle";
           }
-          
+
           return {
             ...pet,
             stats: newStats,
@@ -1195,9 +1345,9 @@ const gameReducer = (state, action) => {
             hasRunAway,
             state: nextState,
             currentJob,
-            specialActivity
+            specialActivity,
           };
-        })
+        }),
       };
     }
 
@@ -1219,56 +1369,62 @@ export const GameProvider = ({ children }) => {
   useEffect(() => {
     const loadGameData = async () => {
       let gameData = null;
-      
+
       // 로그인 상태면 서버에서 먼저 로드 시도
       if (api.isLoggedIn()) {
         try {
-          console.log('🔄 서버에서 게임 데이터 로드 중...');
+          console.log("🔄 서버에서 게임 데이터 로드 중...");
           const serverData = await api.loadGameData();
           // 서버 데이터가 있으면 사용 (coins가 있거나 pets가 있거나)
-          if (serverData && (serverData.coins !== undefined || serverData.pets)) {
+          if (
+            serverData &&
+            (serverData.coins !== undefined || serverData.pets)
+          ) {
             gameData = serverData;
-            console.log('✅ 서버에서 게임 데이터 로드 완료:', serverData);
+            console.log("✅ 서버에서 게임 데이터 로드 완료:", serverData);
           }
         } catch (error) {
-          console.error('서버 로드 실패, 로컬 데이터 사용:', error);
+          console.error("서버 로드 실패, 로컬 데이터 사용:", error);
         }
       }
-      
+
       // 서버 데이터가 없으면 로컬 스토리지에서 로드
       if (!gameData) {
-        const savedGame = localStorage.getItem('tamagotchi_save');
+        const savedGame = localStorage.getItem("tamagotchi_save");
         if (savedGame) {
           try {
             gameData = JSON.parse(savedGame);
-            console.log('📁 로컬 스토리지에서 게임 데이터 로드');
+            console.log("📁 로컬 스토리지에서 게임 데이터 로드");
           } catch (e) {
-            console.error('로컬 데이터 파싱 실패:', e);
+            console.error("로컬 데이터 파싱 실패:", e);
           }
         }
       }
-      
+
       // 데이터가 있으면 로드
       if (gameData) {
         dispatch({ type: ActionTypes.LOAD_GAME, payload: gameData });
-        
+
         if (gameData.lastSaveTime) {
           const offlineSeconds = (Date.now() - gameData.lastSaveTime) / 1000;
           if (offlineSeconds > 60) {
-            dispatch({ 
-              type: ActionTypes.APPLY_OFFLINE_PENALTY, 
-              payload: { offlineSeconds } 
+            dispatch({
+              type: ActionTypes.APPLY_OFFLINE_PENALTY,
+              payload: { offlineSeconds },
             });
-            
-            const awakePets = gameData.pets?.filter(p => p.state !== 'sleep') || [];
+
+            const awakePets =
+              gameData.pets?.filter((p) => p.state !== "sleep") || [];
             if (awakePets.length > 0) {
               setTimeout(() => {
                 dispatch({
                   type: ActionTypes.ADD_NOTIFICATION,
                   payload: {
-                    message: `⚠️ ${Math.floor(offlineSeconds / 60)}분 동안 펫이 깨어있어서 상태가 감소했어요!`,
-                    type: 'warning'
-                  }
+                    message: `⚠️ ${Math.floor(
+                      offlineSeconds / 60
+                    )}분 동안 펫이 깨어있어서 상태가 감소했어요!`,
+                    type: "warning",
+                  },
                 });
               }, 1000);
             }
@@ -1276,14 +1432,14 @@ export const GameProvider = ({ children }) => {
         }
       }
     };
-    
+
     loadGameData();
   }, []);
 
   // 서버 저장 함수 (debounced)
   const lastServerSave = useRef(0);
   const serverSaveTimeout = useRef(null);
-  
+
   const saveToServerDirect = async (gameState) => {
     try {
       await api.saveGameData({
@@ -1294,17 +1450,17 @@ export const GameProvider = ({ children }) => {
         assets: gameState.assets,
         partTimeJob: { isWorking: false },
         gameTime: gameState.gameTime,
-        settings: gameState.settings
+        settings: gameState.settings,
       });
-      console.log('✅ 서버 저장 완료');
+      console.log("✅ 서버 저장 완료");
     } catch (error) {
-      console.error('❌ 서버 저장 실패:', error);
+      console.error("❌ 서버 저장 실패:", error);
     }
   };
 
   const saveToServer = useCallback(async (gameState) => {
     if (!api.isLoggedIn()) return;
-    
+
     // 최소 5초 간격으로 서버 저장
     const now = Date.now();
     if (now - lastServerSave.current < 5000) {
@@ -1318,9 +1474,9 @@ export const GameProvider = ({ children }) => {
       }, 5000 - (now - lastServerSave.current));
       return;
     }
-    
+
     lastServerSave.current = now;
-    
+
     try {
       await api.saveGameData({
         coins: gameState.coins,
@@ -1329,17 +1485,17 @@ export const GameProvider = ({ children }) => {
         inventory: gameState.inventory,
         partTimeJob: { isWorking: false },
         gameTime: gameState.gameTime,
-        settings: gameState.settings
+        settings: gameState.settings,
       });
-      console.log('✅ 서버 저장 완료');
+      console.log("✅ 서버 저장 완료");
     } catch (error) {
-      console.error('❌ 서버 저장 실패:', error);
+      console.error("❌ 서버 저장 실패:", error);
     }
   }, []);
 
   // 최신 상태 유지를 위한 Ref
   const stateRef = useRef(state);
-  
+
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
@@ -1348,28 +1504,29 @@ export const GameProvider = ({ children }) => {
   useEffect(() => {
     // 로컬 저장 (10초마다)
     const localSaveInterval = setInterval(() => {
-      localStorage.setItem('tamagotchi_save', JSON.stringify(stateRef.current));
+      localStorage.setItem("tamagotchi_save", JSON.stringify(stateRef.current));
     }, 10000);
-    
+
     // 서버 저장 (30초마다, 로그인 상태일 때만)
     const serverSaveInterval = setInterval(() => {
       if (api.isLoggedIn()) {
         saveToServer(stateRef.current);
       }
     }, 10000);
-    
+
     const handleBeforeUnload = (e) => {
       // 초기화 중이면 저장하지 않음
       if (isResetting.current) return;
-      
+
       const currentState = stateRef.current;
-      
+
       // 로컬 저장
-      localStorage.setItem('tamagotchi_save', JSON.stringify(currentState));
-      
+      localStorage.setItem("tamagotchi_save", JSON.stringify(currentState));
+
       // 서버 저장 시도 (navigator.sendBeacon 사용)
       if (api.isLoggedIn()) {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+        const apiUrl =
+          import.meta.env.VITE_API_URL || "http://localhost:3001/api";
         const data = JSON.stringify({
           coins: currentState.coins,
           upgrades: currentState.upgrades,
@@ -1378,67 +1535,71 @@ export const GameProvider = ({ children }) => {
           assets: currentState.assets,
           partTimeJob: { isWorking: false },
           gameTime: currentState.gameTime,
-          settings: currentState.settings
+          settings: currentState.settings,
         });
-        
+
         // sendBeacon으로 페이지 닫을 때도 저장
         navigator.sendBeacon(
           `${apiUrl}/game/save`,
-          new Blob([data], { type: 'application/json' })
+          new Blob([data], { type: "application/json" })
         );
       }
-      
-      const awakePets = currentState.pets.filter(p => p.state !== 'sleep');
+
+      const awakePets = currentState.pets.filter((p) => p.state !== "sleep");
       if (awakePets.length > 0) {
         e.preventDefault();
-        e.returnValue = '펫이 깨어있어요! 재우지 않고 나가면 상태가 감소합니다.';
+        e.returnValue =
+          "펫이 깨어있어요! 재우지 않고 나가면 상태가 감소합니다.";
         return e.returnValue;
       }
     };
-    
+
     // visibilitychange로 탭 전환 시에도 저장 및 오프라인 계산
     const handleVisibilityChange = () => {
       // 페이지 숨겨질 때 (백그라운드 등)
-      if (document.visibilityState === 'hidden') {
+      if (document.visibilityState === "hidden") {
         const currentState = stateRef.current;
-        
+
         // lastSaveTime 갱신을 위해 한번 저장
-        localStorage.setItem('tamagotchi_save', JSON.stringify({
+        localStorage.setItem(
+          "tamagotchi_save",
+          JSON.stringify({
             ...currentState,
-            lastSaveTime: Date.now()
-        }));
-        
+            lastSaveTime: Date.now(),
+          })
+        );
+
         if (api.isLoggedIn()) {
           saveToServer(currentState);
         }
-      } 
+      }
       // 페이지 다시 보일 때 (포그라운드 복귀)
-      else if (document.visibilityState === 'visible') {
+      else if (document.visibilityState === "visible") {
         const currentState = stateRef.current;
         if (currentState.lastSaveTime) {
-           const now = Date.now();
-           const elapsed = (now - currentState.lastSaveTime) / 1000;
-           
-           // 5초 이상 백그라운드에 있었을 경우 상태 업데이트
-           if (elapsed > 5) {
-             console.log(`[Resume] Background for ${elapsed.toFixed(1)}s`);
-             dispatch({
-                type: ActionTypes.APPLY_OFFLINE_PENALTY,
-                payload: { offlineSeconds: elapsed }
-             });
-           }
+          const now = Date.now();
+          const elapsed = (now - currentState.lastSaveTime) / 1000;
+
+          // 5초 이상 백그라운드에 있었을 경우 상태 업데이트
+          if (elapsed > 5) {
+            console.log(`[Resume] Background for ${elapsed.toFixed(1)}s`);
+            dispatch({
+              type: ActionTypes.APPLY_OFFLINE_PENALTY,
+              payload: { offlineSeconds: elapsed },
+            });
+          }
         }
       }
     };
-    
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     return () => {
       clearInterval(localSaveInterval);
       clearInterval(serverSaveInterval);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       if (serverSaveTimeout.current) {
         clearTimeout(serverSaveTimeout.current);
       }
@@ -1450,7 +1611,7 @@ export const GameProvider = ({ children }) => {
     const tickInterval = setInterval(() => {
       dispatch({ type: ActionTypes.TICK });
     }, 3000);
-    
+
     return () => clearInterval(tickInterval);
   }, []);
 
@@ -1459,25 +1620,25 @@ export const GameProvider = ({ children }) => {
     const jobInterval = setInterval(() => {
       dispatch({ type: ActionTypes.JOB_SECOND_TICK });
     }, 1000);
-    
+
     return () => clearInterval(jobInterval);
   }, []);
 
   // 똥 싸기
   useEffect(() => {
     const poopInterval = setInterval(() => {
-      state.pets.forEach(pet => {
-        if (!pet.hasRunAway && pet.state !== 'sleep' && Math.random() < 0.1) {
+      state.pets.forEach((pet) => {
+        if (!pet.hasRunAway && pet.state !== "sleep" && Math.random() < 0.1) {
           dispatch({ type: ActionTypes.ADD_POOP, payload: { petId: pet.id } });
         }
       });
     }, 10000);
-    
+
     return () => clearInterval(poopInterval);
   }, [state.pets]);
 
   const getSelectedPet = () => {
-    return state.pets.find(p => p.id === state.selectedPetId) || null;
+    return state.pets.find((p) => p.id === state.selectedPetId) || null;
   };
 
   const getClickCoins = () => {
@@ -1503,14 +1664,14 @@ export const GameProvider = ({ children }) => {
   };
 
   const getJobCost = (jobType, petId) => {
-    const pet = state.pets.find(p => p.id === petId);
+    const pet = state.pets.find((p) => p.id === petId);
     if (!pet) return 0;
     const currentLevel = pet.jobs[jobType]?.level || 0;
     return calculateJobCost(jobType, currentLevel);
   };
 
   const getJobEarnPerSecond = (jobType, petId) => {
-    const pet = state.pets.find(p => p.id === petId);
+    const pet = state.pets.find((p) => p.id === petId);
     if (!pet) return 0;
     const level = pet.jobs[jobType]?.level || 0;
     // 자산 배율 적용하지 않음 (기본 수입만 반환)
@@ -1529,196 +1690,224 @@ export const GameProvider = ({ children }) => {
 
   // 특수 활동 시작
   const startSpecialActivity = (petId, activityType, duration = 5000) => {
-    const pet = state.pets.find(p => p.id === petId);
-    if (!pet || pet.state === 'sleep') return;
-    
-    dispatch({ 
-      type: ActionTypes.SPECIAL_ACTIVITY, 
-      payload: { petId, activityType } 
+    const pet = state.pets.find((p) => p.id === petId);
+    if (!pet || pet.state === "sleep") return;
+
+    dispatch({
+      type: ActionTypes.SPECIAL_ACTIVITY,
+      payload: { petId, activityType },
     });
-    
+
     const startTime = Date.now();
     const progressInterval = setInterval(() => {
       const elapsed = Date.now() - startTime;
       const progress = Math.min(100, (elapsed / duration) * 100);
       dispatch({
         type: ActionTypes.UPDATE_ACTIVITY_PROGRESS,
-        payload: { petId, progress }
+        payload: { petId, progress },
       });
-      
+
       if (progress >= 100) {
         clearInterval(progressInterval);
-        dispatch({ type: ActionTypes.END_SPECIAL_ACTIVITY, payload: { petId } });
+        dispatch({
+          type: ActionTypes.END_SPECIAL_ACTIVITY,
+          payload: { petId },
+        });
       }
     }, 100);
-    
+
     activityTimers.current[petId] = progressInterval;
   };
 
   const actions = {
-    addPet: (type, name) => dispatch({ 
-      type: ActionTypes.ADD_PET, 
-      payload: { type, name } 
-    }),
-    
-    removePet: (petId) => dispatch({ 
-      type: ActionTypes.REMOVE_PET, 
-      payload: { petId } 
-    }),
-    
-    selectPet: (petId) => dispatch({ 
-      type: ActionTypes.SELECT_PET, 
-      payload: { petId } 
-    }),
-    
-    updatePetSettings: (petId, updates) => dispatch({
-      type: ActionTypes.UPDATE_PET_SETTINGS,
-      payload: { petId, updates }
-    }),
-    
-    clickPet: (petId) => dispatch({
-      type: ActionTypes.CLICK_PET,
-      payload: { petId }
-    }),
-    
-    feedPet: (petId, foodType = 'apple') => dispatch({ 
-      type: ActionTypes.FEED_PET, 
-      payload: { petId, foodType } 
-    }),
-    
+    addPet: (type, name) =>
+      dispatch({
+        type: ActionTypes.ADD_PET,
+        payload: { type, name },
+      }),
+
+    removePet: (petId) =>
+      dispatch({
+        type: ActionTypes.REMOVE_PET,
+        payload: { petId },
+      }),
+
+    selectPet: (petId) =>
+      dispatch({
+        type: ActionTypes.SELECT_PET,
+        payload: { petId },
+      }),
+
+    updatePetSettings: (petId, updates) =>
+      dispatch({
+        type: ActionTypes.UPDATE_PET_SETTINGS,
+        payload: { petId, updates },
+      }),
+
+    clickPet: (petId) =>
+      dispatch({
+        type: ActionTypes.CLICK_PET,
+        payload: { petId },
+      }),
+
+    feedPet: (petId, foodType = "apple") =>
+      dispatch({
+        type: ActionTypes.FEED_PET,
+        payload: { petId, foodType },
+      }),
+
     playWithPet: (petId, activityType) => {
-      const pet = state.pets.find(p => p.id === petId);
-      if (!pet || pet.state === 'sleep') return;
-      
-      const activity = activityType || 
-        (pet.type === 'dog' ? 'walking' : 
-         pet.type === 'cat' ? 'ribbon' : 'wheel');
-      
+      const pet = state.pets.find((p) => p.id === petId);
+      if (!pet || pet.state === "sleep") return;
+
+      const activity =
+        activityType ||
+        (pet.type === "dog"
+          ? "walking"
+          : pet.type === "cat"
+          ? "ribbon"
+          : "wheel");
+
       startSpecialActivity(petId, activity, 8000);
     },
-    
-    cleanPet: (petId) => dispatch({ 
-      type: ActionTypes.CLEAN_PET, 
-      payload: { petId } 
-    }),
-    
-    healPet: (petId) => dispatch({ 
-      type: ActionTypes.HEAL_PET, 
-      payload: { petId } 
-    }),
-    
-    sleepPet: (petId) => dispatch({ 
-      type: ActionTypes.SLEEP_PET, 
-      payload: { petId } 
-    }),
-    
-    wakePet: (petId) => dispatch({ 
-      type: ActionTypes.WAKE_PET, 
-      payload: { petId } 
-    }),
-    
-    upgrade: (upgradeType) => dispatch({
-      type: ActionTypes.UPGRADE,
-      payload: { upgradeType }
-    }),
-    
-    upgradeFood: (itemType, itemName) => dispatch({
-      type: ActionTypes.UPGRADE_FOOD,
-      payload: { itemType, itemName }
-    }),
-    
-    buyItem: (itemType, itemName) => dispatch({ 
-      type: ActionTypes.BUY_ITEM, 
-      payload: { itemType, itemName } 
-    }),
-    
-    unlockJob: (petId, jobType) => dispatch({
-      type: ActionTypes.UNLOCK_JOB,
-      payload: { petId, jobType }
-    }),
-    
-    upgradeJob: (petId, jobType) => dispatch({
-      type: ActionTypes.UPGRADE_JOB,
-      payload: { petId, jobType }
-    }),
-    
+
+    cleanPet: (petId) =>
+      dispatch({
+        type: ActionTypes.CLEAN_PET,
+        payload: { petId },
+      }),
+
+    healPet: (petId) =>
+      dispatch({
+        type: ActionTypes.HEAL_PET,
+        payload: { petId },
+      }),
+
+    sleepPet: (petId) =>
+      dispatch({
+        type: ActionTypes.SLEEP_PET,
+        payload: { petId },
+      }),
+
+    wakePet: (petId) =>
+      dispatch({
+        type: ActionTypes.WAKE_PET,
+        payload: { petId },
+      }),
+
+    upgrade: (upgradeType) =>
+      dispatch({
+        type: ActionTypes.UPGRADE,
+        payload: { upgradeType },
+      }),
+
+    upgradeFood: (itemType, itemName) =>
+      dispatch({
+        type: ActionTypes.UPGRADE_FOOD,
+        payload: { itemType, itemName },
+      }),
+
+    buyItem: (itemType, itemName) =>
+      dispatch({
+        type: ActionTypes.BUY_ITEM,
+        payload: { itemType, itemName },
+      }),
+
+    unlockJob: (petId, jobType) =>
+      dispatch({
+        type: ActionTypes.UNLOCK_JOB,
+        payload: { petId, jobType },
+      }),
+
+    upgradeJob: (petId, jobType) =>
+      dispatch({
+        type: ActionTypes.UPGRADE_JOB,
+        payload: { petId, jobType },
+      }),
+
     startJob: (petId, jobType) => {
-      const pet = state.pets.find(p => p.id === petId);
-      if (!pet || pet.state === 'sleep') {
+      const pet = state.pets.find((p) => p.id === petId);
+      if (!pet || pet.state === "sleep") {
         dispatch({
           type: ActionTypes.ADD_NOTIFICATION,
           payload: {
-            message: '⚠️ 펫이 깨어있을 때만 알바를 할 수 있어요!',
-            type: 'warning'
-          }
+            message: "⚠️ 펫이 깨어있을 때만 알바를 할 수 있어요!",
+            type: "warning",
+          },
         });
         return;
       }
       dispatch({ type: ActionTypes.START_JOB, payload: { petId, jobType } });
     },
-    
-    endJob: (petId) => dispatch({ 
-      type: ActionTypes.END_JOB, 
-      payload: { petId } 
-    }),
-    
+
+    endJob: (petId) =>
+      dispatch({
+        type: ActionTypes.END_JOB,
+        payload: { petId },
+      }),
+
     upgradeAsset: (assetType) => {
       const currentAsset = state.assets[assetType];
       const assetInfo = ASSET_TYPES[assetType];
-      
+
       if (!currentAsset || !assetInfo) return;
       if (currentAsset.level >= assetInfo.maxLevel) {
         dispatch({
           type: ActionTypes.ADD_NOTIFICATION,
           payload: {
             message: `⚠️ ${assetInfo.name}은(는) 이미 최대 레벨입니다!`,
-            type: 'warning'
-          }
+            type: "warning",
+          },
         });
         return;
       }
-      
+
       const cost = calculateAssetCost(assetType, currentAsset.level);
       if (state.coins < cost) {
         dispatch({
           type: ActionTypes.ADD_NOTIFICATION,
           payload: {
             message: `⚠️ 코인이 부족해요! (필요: ${cost}🪙)`,
-            type: 'warning'
-          }
+            type: "warning",
+          },
         });
         return;
       }
-      
+
       dispatch({ type: ActionTypes.UPGRADE_ASSET, payload: { assetType } });
       dispatch({
         type: ActionTypes.ADD_NOTIFICATION,
         payload: {
-          message: `🎉 ${assetInfo.name} Lv.${currentAsset.level + 1} 업그레이드 완료!`,
-          type: 'success'
-        }
+          message: `🎉 ${assetInfo.name} Lv.${
+            currentAsset.level + 1
+          } 업그레이드 완료!`,
+          type: "success",
+        },
       });
     },
-    
-    addCoins: (amount) => dispatch({ 
-      type: ActionTypes.ADD_COINS, 
-      payload: { amount } 
-    }),
-    
-    notify: (message, type = 'info') => dispatch({ 
-      type: ActionTypes.ADD_NOTIFICATION, 
-      payload: { message, type } 
-    }),
-    
-    removeNotification: (id) => dispatch({ 
-      type: ActionTypes.REMOVE_NOTIFICATION, 
-      payload: { id } 
-    }),
-    
+
+    addCoins: (amount) =>
+      dispatch({
+        type: ActionTypes.ADD_COINS,
+        payload: { amount },
+      }),
+
+    notify: (message, type = "info") =>
+      dispatch({
+        type: ActionTypes.ADD_NOTIFICATION,
+        payload: { message, type },
+      }),
+
+    removeNotification: (id) =>
+      dispatch({
+        type: ActionTypes.REMOVE_NOTIFICATION,
+        payload: { id },
+      }),
+
     saveGame: async () => {
       // 로컬 저장
-      localStorage.setItem('tamagotchi_save', JSON.stringify(state));
-      
+      localStorage.setItem("tamagotchi_save", JSON.stringify(state));
+
       // 서버 저장 (로그인 상태일 때)
       if (api.isLoggedIn()) {
         try {
@@ -1730,101 +1919,108 @@ export const GameProvider = ({ children }) => {
             assets: state.assets,
             partTimeJob: { isWorking: false },
             gameTime: state.gameTime,
-            settings: state.settings
+            settings: state.settings,
           });
-          console.log('✅ 서버에 게임 저장 완료');
+          console.log("✅ 서버에 게임 저장 완료");
           dispatch({
             type: ActionTypes.ADD_NOTIFICATION,
-            payload: { message: '💾 게임이 저장되었습니다!', type: 'success' }
+            payload: { message: "💾 게임이 저장되었습니다!", type: "success" },
           });
         } catch (error) {
-          console.error('❌ 서버 저장 실패:', error);
+          console.error("❌ 서버 저장 실패:", error);
           dispatch({
             type: ActionTypes.ADD_NOTIFICATION,
-            payload: { message: '⚠️ 서버 저장 실패 (로컬에만 저장됨)', type: 'warning' }
+            payload: {
+              message: "⚠️ 서버 저장 실패 (로컬에만 저장됨)",
+              type: "warning",
+            },
           });
         }
       } else {
-        dispatch({
-
-        });
+        dispatch({});
       }
     },
-    
+
     resetGame: async () => {
-      if (window.confirm("정말로 모든 게임 데이터를 삭제하고 초기화하시겠습니까?")) {
+      if (
+        window.confirm("정말로 모든 게임 데이터를 삭제하고 초기화하시겠습니까?")
+      ) {
         isResetting.current = true;
-        
+
         // 서버 데이터 초기화 (로그인 시)
         if (api.isLoggedIn()) {
           try {
             await api.resetGameData();
           } catch (error) {
-            console.error('서버 초기화 실패:', error);
-            alert('서버 데이터 초기화 중 오류가 발생했습니다. 다시 시도해주세요.');
+            console.error("서버 초기화 실패:", error);
+            alert(
+              "서버 데이터 초기화 중 오류가 발생했습니다. 다시 시도해주세요."
+            );
             isResetting.current = false;
             return;
           }
         }
-        
-        localStorage.removeItem('tamagotchi_save');
-        localStorage.removeItem('tamagotchi_guest');
+
+        localStorage.removeItem("tamagotchi_save");
+        localStorage.removeItem("tamagotchi_guest");
         sessionStorage.clear();
         window.location.reload();
       }
     },
-    
+
     recallPet: (petId) => {
-      const pet = state.pets.find(p => p.id === petId);
+      const pet = state.pets.find((p) => p.id === petId);
       if (!pet || !pet.hasRunAway) return;
-      
+
       const cost = calculateRecallCost(pet.growth.level);
       if (state.coins < cost) {
         dispatch({
           type: ActionTypes.ADD_NOTIFICATION,
           payload: {
             message: `⚠️ 코인이 부족해요! (필요: ${cost}🪙)`,
-            type: 'warning'
-          }
+            type: "warning",
+          },
         });
         return;
       }
-      
+
       dispatch({ type: ActionTypes.RECALL_PET, payload: { petId } });
       dispatch({
         type: ActionTypes.ADD_NOTIFICATION,
         payload: {
           message: `🎉 ${pet.name}가 돌아왔어요! (-${cost}🪙)`,
-          type: 'success'
-        }
+          type: "success",
+        },
       });
-    }
+    },
   };
 
   const getRecallCost = (petId) => {
-    const pet = state.pets.find(p => p.id === petId);
+    const pet = state.pets.find((p) => p.id === petId);
     if (!pet) return 0;
     return calculateRecallCost(pet.growth.level);
   };
 
   return (
-    <GameContext.Provider value={{ 
-      state, 
-      dispatch, 
-      actions, 
-      getSelectedPet,
-      getClickCoins,
-      getUpgradeCost,
-      getFoodPrice,
-      getFoodUpgradeCost,
-      getJobCost,
-      getJobEarnPerSecond,
-      getAssetCost,
-      getTotalAssetMultiplier,
-      getRecallCost,
-      JOB_TYPES,
-      ASSET_TYPES
-    }}>
+    <GameContext.Provider
+      value={{
+        state,
+        dispatch,
+        actions,
+        getSelectedPet,
+        getClickCoins,
+        getUpgradeCost,
+        getFoodPrice,
+        getFoodUpgradeCost,
+        getJobCost,
+        getJobEarnPerSecond,
+        getAssetCost,
+        getTotalAssetMultiplier,
+        getRecallCost,
+        JOB_TYPES,
+        ASSET_TYPES,
+      }}
+    >
       {children}
     </GameContext.Provider>
   );
@@ -1833,7 +2029,7 @@ export const GameProvider = ({ children }) => {
 export const useGame = () => {
   const context = useContext(GameContext);
   if (!context) {
-    throw new Error('useGame must be used within GameProvider');
+    throw new Error("useGame must be used within GameProvider");
   }
   return context;
 };
