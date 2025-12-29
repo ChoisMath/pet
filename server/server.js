@@ -459,7 +459,7 @@ app.post("/api/game/save", authenticateToken, async (req, res) => {
     }
   } catch (error) {
     console.error("게임 저장 에러:", error);
-    res.status(500).json({ error: "서버 에러가 발생했습니다." });
+    res.status(500).json({ error: `서버 저장 실패: ${error.message}` });
   }
 });
 
