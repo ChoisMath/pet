@@ -130,6 +130,22 @@ export const initializeDatabase = async () => {
       END $$;
     `);
 
+    // pets 테이블에 sleep_start, energy_at_sleep_start 컬럼 추가
+    await pool.query(`
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                       WHERE table_name='pets' AND column_name='sleep_start') THEN
+          ALTER TABLE pets ADD COLUMN sleep_start BIGINT;
+        END IF;
+        
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                       WHERE table_name='pets' AND column_name='energy_at_sleep_start') THEN
+          ALTER TABLE pets ADD COLUMN energy_at_sleep_start FLOAT;
+        END IF;
+      END $$;
+    `);
+
     console.log('✅ 데이터베이스 테이블 초기화 완료');
   } catch (error) {
     console.error('❌ 데이터베이스 초기화 에러:', error);
