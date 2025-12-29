@@ -39,41 +39,39 @@ const JOB_TYPES = {
 
 // 자산 정보 - 알바 수익 배율 증가
 const ASSET_TYPES = {
-  paperBox: {
-    name: "종이박스",
-    icon: "📦",
-    baseCost: 1000,
-    multiplier: 1.1,
-    maxLevel: 20,
+  paperBox: { 
+    name: '종이박스', icon: '📦', baseCost: 1000, maxLevel: 20,
+    baseEffect: 1, increment: 1 
   },
-  woodBox: {
-    name: "나무박스",
-    icon: "🪵",
-    baseCost: 3000,
-    multiplier: 1.3,
-    maxLevel: 20,
+  woodBox: { 
+    name: '나무박스', icon: '🪵', baseCost: 3000, maxLevel: 20,
+    baseEffect: 2, increment: 2
   },
-  woodHouse: {
-    name: "나무집",
-    icon: "🏠",
-    baseCost: 5000,
-    multiplier: 1.5,
-    maxLevel: 20,
+  woodHouse: { 
+    name: '나무집', icon: '🏠', baseCost: 5000, maxLevel: 20,
+    baseEffect: 5, increment: 3
   },
-  plasticHouse: {
-    name: "플라스틱집",
-    icon: "🏡",
-    baseCost: 10000,
-    multiplier: 2.0,
-    maxLevel: 20,
+  plasticHouse: { 
+    name: '플라스틱집', icon: '🏡', baseCost: 10000, maxLevel: 20,
+    baseEffect: 10, increment: 5
   },
-  concreteHouse: {
-    name: "콘크리트집",
-    icon: "🏢",
-    baseCost: 20000,
-    multiplier: 3.0,
-    maxLevel: 20,
-  },
+  concreteHouse: { 
+    name: '콘크리트집', icon: '🏢', baseCost: 20000, maxLevel: 20,
+    baseEffect: 20, increment: 10
+  }
+};
+
+// 자산 총 배율 계산
+const calculateTotalAssetMultiplier = (assets) => {
+  let totalMultiplier = 1;
+  for (const [assetType, assetData] of Object.entries(assets)) {
+    const assetInfo = ASSET_TYPES[assetType];
+    if (assetInfo && assetData.level > 0) {
+      const currentAssetMultiplier = assetInfo.baseEffect + (assetData.level - 1) * assetInfo.increment;
+      totalMultiplier *= currentAssetMultiplier;
+    }
+  }
+  return totalMultiplier;
 };
 
 // 초기 상태
@@ -241,19 +239,6 @@ const calculateJobEarnPerSecond = (jobType, level) => {
   if (!job || level <= 0) return 0;
   // 레벨 1: baseEarn, 레벨 2: baseEarn + earnIncrement, ...
   return job.baseEarn + (level - 1) * job.earnIncrement;
-};
-
-// 자산 총 배율 계산
-const calculateTotalAssetMultiplier = (assets) => {
-  let multiplier = 1;
-  for (const [assetType, assetData] of Object.entries(assets)) {
-    const assetInfo = ASSET_TYPES[assetType];
-    if (assetInfo && assetData.level > 0) {
-      // 각 자산의 레벨만큼 배율 적용 (레벨 1: 배율^1, 레벨 2: 배율^2, ...)
-      multiplier *= Math.pow(assetInfo.multiplier, assetData.level);
-    }
-  }
-  return multiplier;
 };
 
 // 자산 업그레이드 비용 계산 (Lv마다 10배 증가)
