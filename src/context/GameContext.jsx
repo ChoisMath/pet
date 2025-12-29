@@ -1078,10 +1078,25 @@ const gameReducer = (state, action) => {
       const { offlineSeconds } = action.payload;
       const decayPerSecond = 0.01;
       
+      console.log(`[Offline Processing] Duration: ${offlineSeconds.toFixed(1)}s`);
+
       return {
         ...state,
         pets: state.pets.map(pet => {
-          if (pet.state === 'sleep') return pet;
+          if (pet.state === 'sleep') {
+             // 수면 중이면 에너지 회복 (분당 0.5)
+             const energyGain = offlineSeconds * (0.5 / 60);
+             const newEnergy = Math.min(100, pet.stats.energy + energyGain);
+             console.log(`[Offline Sleep] Pet ${pet.name}: +${energyGain.toFixed(2)} Energy`);
+             
+             return {
+               ...pet,
+               stats: {
+                 ...pet.stats,
+                 energy: newEnergy
+               }
+             };
+          }
           
           const decay = offlineSeconds * decayPerSecond;
           return {
@@ -1322,39 +1337,48 @@ export const GameProvider = ({ children }) => {
     }
   }, []);
 
-  // 게임 자동 저장
+  // 최신 상태 유지를 위한 Ref
+  const stateRef = useRef(state);
+  
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
+  // 게임 자동 저장 (상태 의존성 제거)
   useEffect(() => {
     // 로컬 저장 (10초마다)
     const localSaveInterval = setInterval(() => {
-      localStorage.setItem('tamagotchi_save', JSON.stringify(state));
+      localStorage.setItem('tamagotchi_save', JSON.stringify(stateRef.current));
     }, 10000);
     
     // 서버 저장 (30초마다, 로그인 상태일 때만)
     const serverSaveInterval = setInterval(() => {
       if (api.isLoggedIn()) {
-        saveToServer(state);
+        saveToServer(stateRef.current);
       }
-    }, 30000);
+    }, 10000);
     
     const handleBeforeUnload = (e) => {
       // 초기화 중이면 저장하지 않음
       if (isResetting.current) return;
       
+      const currentState = stateRef.current;
+      
       // 로컬 저장
-      localStorage.setItem('tamagotchi_save', JSON.stringify(state));
+      localStorage.setItem('tamagotchi_save', JSON.stringify(currentState));
       
       // 서버 저장 시도 (navigator.sendBeacon 사용)
       if (api.isLoggedIn()) {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
         const data = JSON.stringify({
-          coins: state.coins,
-          upgrades: state.upgrades,
-          pets: state.pets,
-          inventory: state.inventory,
-          assets: state.assets,
+          coins: currentState.coins,
+          upgrades: currentState.upgrades,
+          pets: currentState.pets,
+          inventory: currentState.inventory,
+          assets: currentState.assets,
           partTimeJob: { isWorking: false },
-          gameTime: state.gameTime,
-          settings: state.settings
+          gameTime: currentState.gameTime,
+          settings: currentState.settings
         });
         
         // sendBeacon으로 페이지 닫을 때도 저장
@@ -1364,7 +1388,7 @@ export const GameProvider = ({ children }) => {
         );
       }
       
-      const awakePets = state.pets.filter(p => p.state !== 'sleep');
+      const awakePets = currentState.pets.filter(p => p.state !== 'sleep');
       if (awakePets.length > 0) {
         e.preventDefault();
         e.returnValue = '펫이 깨어있어요! 재우지 않고 나가면 상태가 감소합니다.';
@@ -1372,12 +1396,37 @@ export const GameProvider = ({ children }) => {
       }
     };
     
-    // visibilitychange로 탭 전환 시에도 저장
+    // visibilitychange로 탭 전환 시에도 저장 및 오프라인 계산
     const handleVisibilityChange = () => {
+      // 페이지 숨겨질 때 (백그라운드 등)
       if (document.visibilityState === 'hidden') {
-        localStorage.setItem('tamagotchi_save', JSON.stringify(state));
+        const currentState = stateRef.current;
+        
+        // lastSaveTime 갱신을 위해 한번 저장
+        localStorage.setItem('tamagotchi_save', JSON.stringify({
+            ...currentState,
+            lastSaveTime: Date.now()
+        }));
+        
         if (api.isLoggedIn()) {
-          saveToServer(state);
+          saveToServer(currentState);
+        }
+      } 
+      // 페이지 다시 보일 때 (포그라운드 복귀)
+      else if (document.visibilityState === 'visible') {
+        const currentState = stateRef.current;
+        if (currentState.lastSaveTime) {
+           const now = Date.now();
+           const elapsed = (now - currentState.lastSaveTime) / 1000;
+           
+           // 5초 이상 백그라운드에 있었을 경우 상태 업데이트
+           if (elapsed > 5) {
+             console.log(`[Resume] Background for ${elapsed.toFixed(1)}s`);
+             dispatch({
+                type: ActionTypes.APPLY_OFFLINE_PENALTY,
+                payload: { offlineSeconds: elapsed }
+             });
+           }
         }
       }
     };
@@ -1394,7 +1443,7 @@ export const GameProvider = ({ children }) => {
         clearTimeout(serverSaveTimeout.current);
       }
     };
-  }, [state, saveToServer]);
+  }, [saveToServer]);
 
   // 게임 틱 (3초마다)
   useEffect(() => {
