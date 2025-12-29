@@ -1486,6 +1486,7 @@ export const GameProvider = ({ children }) => {
         partTimeJob: { isWorking: false },
         gameTime: gameState.gameTime,
         settings: gameState.settings,
+        assets: gameState.assets
       });
       console.log("✅ 서버 저장 완료");
     } catch (error) {
