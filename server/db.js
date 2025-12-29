@@ -146,6 +146,11 @@ export const initializeDatabase = async () => {
       END $$;
     `);
 
+    // coins 컬럼 타입을 BIGINT로 변경 (21억 이상 코인 지원)
+    await pool.query(`
+      ALTER TABLE users ALTER COLUMN coins TYPE BIGINT;
+    `);
+
     console.log('✅ 데이터베이스 테이블 초기화 완료');
   } catch (error) {
     console.error('❌ 데이터베이스 초기화 에러:', error);
